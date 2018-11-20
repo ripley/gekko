@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
-const request = require('request-promise');
+const request = require('request-promise').defaults({'proxy': 'http://proxy.vmware.com:3128', strictSSL :false});
 const Promise = require('bluebird');
 
 request({
