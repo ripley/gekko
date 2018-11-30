@@ -50,9 +50,12 @@ const recoverableErrors = [
 Trader.prototype.handleResponse = function(funcName, callback) {
   return (error, data) => {
 
-    if(!error && _.isEmpty(data)) {
-      error = new Error('Empty response');
-    }
+    // Only check if error is undefined, it's is OK if data === [] since it
+    // is what returned when there's no position in trading wallet.
+
+    // if(!error && _.isEmpty(data)) {
+    //   error = new Error('Empty response');
+    // }
 
     if(error) {
       const message = error.message;
@@ -104,16 +107,16 @@ Trader.prototype.handleResponse = function(funcName, callback) {
 };
 
 Trader.prototype.getPortfolio = function(callback) {
-  const processResponse = (err, data) => {
+  const processWalletBalance = (err, data) => {
     if (err) return callback(err);
 
     // We are only interested in funds in the "exchange" wallet
-    data = data.filter(c => c.type === 'exchange');
+    data = data.filter(c => c.type === 'trading');
 
     const asset = _.find(data, c => c.currency.toUpperCase() === this.asset);
     const currency = _.find(data, c => c.currency.toUpperCase() === this.currency);
 
-    let assetAmount, currencyAmount;
+    let assetAmount, currencyFree, currencyUsed, currencyTotal;
 
     if(_.isObject(asset) && _.isNumber(+asset.available) && !_.isNaN(+asset.available))
       assetAmount = +asset.available;
@@ -121,22 +124,41 @@ Trader.prototype.getPortfolio = function(callback) {
       assetAmount = 0;
     }
 
-    if(_.isObject(currency) && _.isNumber(+currency.available) && !_.isNaN(+currency.available))
-      currencyAmount = +currency.available;
+    if(_.isObject(currency) && _.isNumber(+currency.available) && !_.isNaN(+currency.available)) {
+      currencyFree = +currency.available;
+      currencyTotal = +currency.amount;
+      currencyUsed = currencyTotal - currencyFree;
+    }
     else {
-      currencyAmount = 0;
+      currencyFree = 0;
     }
 
-    const portfolio = [
-      { name: this.asset, amount: assetAmount },
-      { name: this.currency, amount: currencyAmount },
-    ];
+    let processPositions = (err, operations) => {
+      if(err) return callback(err);
+      if(!operations) {
+        log.error("got undefined operations list", err);
+        return callback()
+      }
 
-    callback(undefined, portfolio);
+      operations.forEach((operation) => {
+        if(operation.symbol.toUpperCase().substr(0,3) === this.asset) {
+          assetAmount += parseFloat(operation.amount)
+        }
+      });
+
+      const portfolio = [
+        { name: this.asset, amount: assetAmount},
+        { name: this.currency, used: currencyUsed, free: currencyFree, total: currencyTotal},
+      ];
+
+      callback(undefined, portfolio);
+    };
+    const fetch = cb => this.bitfinex.active_positions(this.handleResponse('getPortfolio', cb));
+    retry(null, fetch, processPositions);
   };
 
   const fetch = cb => this.bitfinex.wallet_balances(this.handleResponse('getPortfolio', cb));
-  retry(null, fetch, processResponse);
+  retry(null, fetch, processWalletBalance);
 }
 
 Trader.prototype.getTicker = function(callback) {
@@ -179,7 +201,8 @@ Trader.prototype.submitOrder = function(type, amount, price, callback) {
     price + '',
     this.name.toLowerCase(),
     type,
-    'exchange limit',
+    'limit',
+    'limit',
     this.handleResponse('submitOrder', cb)
   );
 

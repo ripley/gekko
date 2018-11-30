@@ -21,6 +21,7 @@ const Trader = function(next) {
 
   this.propogatedTrades = 0;
   this.propogatedTriggers = 0;
+  this.leverageRatio = 3;
 
   try {
     this.broker = new Broker(this.brokerConfig);
@@ -40,7 +41,7 @@ const Trader = function(next) {
     log.info('\t\t', this.balance, this.brokerConfig.currency);
     log.info('\t', 'Exposed:');
     log.info('\t\t',
-      this.exposed ? 'yes' : 'no',
+      this.exposedLong || this.exposedShort ? 'yes' : 'no',
       `(${(this.exposure * 100).toFixed(2)}%)`
     );
     next();
@@ -98,7 +99,7 @@ Trader.prototype.setPortfolio = function() {
     currency: _.find(
       this.broker.portfolio.balances,
       b => b.name === this.brokerConfig.currency
-    ).amount,
+    ),
     asset: _.find(
       this.broker.portfolio.balances,
       b => b.name === this.brokerConfig.asset
@@ -106,12 +107,27 @@ Trader.prototype.setPortfolio = function() {
   }
 }
 
+// Trader.prototype.setBalance = function() {
+//   this.balance = this.portfolio.currency + this.portfolio.asset * this.price;
+//   this.exposure = (this.portfolio.asset * this.price) / this.balance;
+//   // if more than 10% of balance is in asset we are exposed
+//   this.exposedLong = this.exposure > 0.1;
+//   this.exposedShort = this.exposure < -0.1;
+// }
+
 Trader.prototype.setBalance = function() {
-  this.balance = this.portfolio.currency + this.portfolio.asset * this.price;
-  this.exposure = (this.portfolio.asset * this.price) / this.balance;
+  // Balance in total amount of currency
+  this.balance = this.portfolio.currency.total;
+  // Exposure in value of asset, e.g.:eos.
+  this.exposure = this.portfolio.asset * this.price;
   // if more than 10% of balance is in asset we are exposed
-  this.exposed = this.exposure > 0.1;
-}
+  let totalBalance = this.portfolio.currency.total;
+  let usedBalance = this.portfolio.currency.used;
+  let exposedRatio = usedBalance / totalBalance;
+
+  this.exposedLong = this.exposure > 0 && exposedRatio > 0.1;
+  this.exposedShort = this.exposure < 0 && exposedRatio > 0.1;
+};
 
 Trader.prototype.processCandle = function(candle, done) {
   this.price = candle.close;
@@ -144,6 +160,8 @@ Trader.prototype.processAdvice = function(advice) {
     direction = 'buy';
   } else if(advice.recommendation === 'short') {
     direction = 'sell';
+  } else if(advice.recommendation === 'close') {
+    direction = 'close';
   } else {
     log.error('ignoring advice in unknown direction');
     return;
@@ -167,42 +185,7 @@ Trader.prototype.processAdvice = function(advice) {
 
   let amount;
 
-  if(direction === 'buy') {
-
-    if(this.exposed) {
-      log.info('NOT buying, already exposed');
-      return this.deferredEmit('tradeAborted', {
-        id,
-        adviceId: advice.id,
-        action: direction,
-        portfolio: this.portfolio,
-        balance: this.balance,
-        reason: "Portfolio already in position."
-      });
-    }
-
-    amount = this.portfolio.currency / this.price * 0.95;
-
-    log.info(
-      'Trader',
-      'Received advice to go long.',
-      'Buying ', this.brokerConfig.asset
-    );
-
-  } else if(direction === 'sell') {
-
-    if(!this.exposed) {
-      log.info('NOT selling, already no exposure');
-      return this.deferredEmit('tradeAborted', {
-        id,
-        adviceId: advice.id,
-        action: direction,
-        portfolio: this.portfolio,
-        balance: this.balance,
-        reason: "Portfolio already in position."
-      });
-    }
-
+  function cleanupStopTrigger() {
     // clean up potential old stop trigger
     if(this.activeStopTrigger) {
       this.deferredEmit('triggerAborted', {
@@ -214,17 +197,94 @@ Trader.prototype.processAdvice = function(advice) {
 
       delete this.activeStopTrigger;
     }
+  }
 
-    amount = this.portfolio.asset;
+  let orderDirection = '';
+
+  if(direction === 'buy') {
+
+    if(this.exposedLong) {
+      log.info('NOT buying, already holding a long position');
+      return this.deferredEmit('tradeAborted', {
+        id,
+        adviceId: advice.id,
+        action: direction,
+        portfolio: this.portfolio,
+        balance: this.balance,
+        reason: "Portfolio already in long position."
+      });
+    }
+
+    // amount = this.portfolio.currency / this.price * 0.95;
+    orderDirection = 'buy';
+    amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+
+    log.info(
+      'Trader',
+      'Received advice to go long.',
+      'Buying ', this.brokerConfig.asset
+    );
+
+  } else if(direction === 'sell') {
+
+    if(this.exposedShort) {
+      log.info('NOT selling, already holding a short position');
+      return this.deferredEmit('tradeAborted', {
+        id,
+        adviceId: advice.id,
+        action: direction,
+        portfolio: this.portfolio,
+        balance: this.balance,
+        reason: "Portfolio already in short position."
+      });
+    }
+
+    cleanupStopTrigger();
+
+    // amount = this.portfolio.asset;
+    orderDirection = 'sell';
+    amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
 
     log.info(
       'Trader',
       'Received advice to go short.',
       'Selling ', this.brokerConfig.asset
     );
+  } else if(direction === 'close') {
+    if(!this.exposedShort && !this.exposedLong) {
+      log.info('NOT closing, holding very few long or short position');
+      return this.deferredEmit('tradeAborted', {
+        id,
+        adviceId: advice.id,
+        action: direction,
+        portfolio: this.portfolio,
+        balance: this.balance,
+        reason: "Portfolio already in almost empty position."
+      });
+    }
+
+    if (this.exposedLong) {
+      orderDirection = 'sell';
+    } else if (this.exposedShort) {
+      orderDirection = 'buy';
+    }
+
+    amount = Math.abs(this.portfolio.asset);
   }
 
-  this.createOrder(direction, amount, advice, id);
+  if (!orderDirection) {
+    log.info('NOT trading, direction not determined');
+    return this.deferredEmit('tradeAborted', {
+      id,
+      adviceId: advice.id,
+      action: direction,
+      portfolio: this.portfolio,
+      balance: this.balance,
+      reason: "Failed to determine final trade direction."
+    });
+  }
+
+  this.createOrder(orderDirection, amount, advice, id);
 }
 
 Trader.prototype.createOrder = function(side, amount, advice, id) {
