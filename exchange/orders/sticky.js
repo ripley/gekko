@@ -19,6 +19,8 @@ const moment = require('moment');
 const errors = require('../exchangeErrors');
 const BaseOrder = require('./order');
 const states = require('./states');
+const util = require('../../core/util.js');
+const config = util.getConfig();
 
 class StickyOrder extends BaseOrder {
   constructor({api, marketConfig, capabilities}) {
@@ -26,6 +28,9 @@ class StickyOrder extends BaseOrder {
 
     this.market = marketConfig;
     this.capabilities = capabilities;
+    this.orderConfig = {
+      ...config.trader,
+    };
 
     // global async lock
     this.sticking = false;

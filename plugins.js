@@ -67,6 +67,17 @@ var plugins = [
     }]
   },
   {
+    name: 'Dingtalk bot',
+    description: 'Dingtalk module lets you communicate with Gekko on Dingtalk.',
+    slug: 'dingtalkbot',
+    async: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'dingtalk-robot-sender',
+      version: '1.1.1'
+    }]
+  },
+  {
     name: 'XMPP bot',
     description: 'XMPP module lets you communicate with Gekko on Jabber.',
     slug: 'xmppbot',

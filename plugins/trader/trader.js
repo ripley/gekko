@@ -17,7 +17,7 @@ const Trader = function(next) {
     ...config.trader,
     ...config.watch,
     private: true
-  }
+  };
 
   this.propogatedTrades = 0;
   this.propogatedTriggers = 0;
@@ -49,9 +49,10 @@ const Trader = function(next) {
 
   this.cancellingOrder = false;
   this.sendInitialPortfolio = false;
+  this.activeDirection = null;
 
   setInterval(this.sync, 1000 * 60 * 10);
-}
+};
 
 // teach our trader events
 util.makeEventEmitter(Trader);
@@ -79,20 +80,20 @@ Trader.prototype.sync = function(next) {
       next();
     }
   });
-}
+};
 
 Trader.prototype.relayPortfolioChange = function() {
   this.deferredEmit('portfolioChange', {
     asset: this.portfolio.asset,
     currency: this.portfolio.currency
   });
-}
+};
 
 Trader.prototype.relayPortfolioValueChange = function() {
   this.deferredEmit('portfolioValueChange', {
     balance: this.balance
   });
-}
+};
 
 Trader.prototype.setPortfolio = function() {
   this.portfolio = {
@@ -105,7 +106,7 @@ Trader.prototype.setPortfolio = function() {
       b => b.name === this.brokerConfig.asset
     ).amount
   }
-}
+};
 
 // Trader.prototype.setBalance = function() {
 //   this.balance = this.portfolio.currency + this.portfolio.asset * this.price;
@@ -151,7 +152,7 @@ Trader.prototype.processCandle = function(candle, done) {
   }
 
   done();
-}
+};
 
 Trader.prototype.processAdvice = function(advice) {
   let direction;
@@ -162,6 +163,10 @@ Trader.prototype.processAdvice = function(advice) {
     direction = 'sell';
   } else if(advice.recommendation === 'close') {
     direction = 'close';
+  } else if(advice.recommendation === 'close_then_long') {
+    direction = 'close_then_buy';
+  } else if(advice.recommendation === 'close_then_short') {
+    direction = 'close_then_sell';
   } else {
     log.error('ignoring advice in unknown direction');
     return;
@@ -170,7 +175,7 @@ Trader.prototype.processAdvice = function(advice) {
   const id = 'trade-' + (++this.propogatedTrades);
 
   if(this.order) {
-    if(this.order.side === direction) {
+    if(this.activeDirection === direction) {
       return log.info('ignoring advice: already in the process to', direction);
     }
 
@@ -200,6 +205,7 @@ Trader.prototype.processAdvice = function(advice) {
   }
 
   let orderDirection = '';
+  let cb = null;
 
   if(direction === 'buy') {
 
@@ -270,6 +276,46 @@ Trader.prototype.processAdvice = function(advice) {
     }
 
     amount = Math.abs(this.portfolio.asset);
+  } else if(direction === 'close_then_buy') {
+    if(this.exposedLong) {
+      log.info('NOT closing then buy, already holding a long position');
+      return this.deferredEmit('tradeAborted', {
+        id,
+        adviceId: advice.id,
+        action: direction,
+        portfolio: this.portfolio,
+        balance: this.balance,
+        reason: "Portfolio already in a long position."
+      });
+    }
+
+    orderDirection = 'buy';
+    if(this.exposedShort) {
+      amount = Math.abs(this.portfolio.asset);
+      cb = () => this.processAdvice({recommendation: 'long'})
+    } else {
+      amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+    }
+  } else if(direction === 'close_then_sell') {
+    if(this.exposedShort) {
+      log.info('NOT closing then sell, already holding a short position');
+      return this.deferredEmit('tradeAborted', {
+        id,
+        adviceId: advice.id,
+        action: direction,
+        portfolio: this.portfolio,
+        balance: this.balance,
+        reason: "Portfolio already in a short position."
+      });
+    }
+
+    orderDirection = 'sell';
+    if(this.exposedLong) {
+      amount = Math.abs(this.portfolio.asset);
+      cb = () => this.processAdvice({recommendation: 'short'})
+    } else {
+      amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+    }
   }
 
   if (!orderDirection) {
@@ -284,10 +330,11 @@ Trader.prototype.processAdvice = function(advice) {
     });
   }
 
-  this.createOrder(orderDirection, amount, advice, id);
-}
+  this.activeDirection = direction;
+  this.createOrder(orderDirection, amount, advice, id, cb);
+};
 
-Trader.prototype.createOrder = function(side, amount, advice, id) {
+Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
   const type = 'sticky';
 
   // NOTE: this is the best check we can do at this point
@@ -328,6 +375,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id) {
     log.error('[ORDER] Gekko received error from GB:', e.message);
     log.debug(e);
     this.order = null;
+    this.activeDirection = null;
     this.cancellingOrder = false;
 
     this.deferredEmit('tradeErrored', {
@@ -356,6 +404,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id) {
 
       log.info('[ORDER] summary:', summary);
       this.order = null;
+      this.activeDirection = null;
       this.sync(() => {
 
         let cost;
@@ -424,10 +473,15 @@ Trader.prototype.createOrder = function(side, amount, advice, id) {
             })
           }
         }
+        log.info(`Portfolio after last trade ${this.portfolio}`);
+        // Callback here is the following advice process for close_then_sell and close_then_buy.
+        if (!!cb) {
+          cb();
+        }
       });
-    })
+    });
   });
-}
+};
 
 Trader.prototype.onStopTrigger = function(price) {
   log.info(`TrailingStop trigger "${this.activeStopTrigger.id}" fired! Observed price was ${price}`);
@@ -440,12 +494,12 @@ Trader.prototype.onStopTrigger = function(price) {
   const adviceMock = {
     recommendation: 'short',
     id: this.activeStopTrigger.adviceId
-  }
+  };
 
   delete this.activeStopTrigger;
 
   this.processAdvice(adviceMock);
-}
+};
 
 Trader.prototype.cancelOrder = function(id, advice, next) {
 
@@ -459,6 +513,7 @@ Trader.prototype.cancelOrder = function(id, advice, next) {
   this.order.cancel();
   this.order.once('completed', () => {
     this.order = null;
+    this.activeDirection = null;
     this.cancellingOrder = false;
     this.deferredEmit('tradeCancelled', {
       id,
