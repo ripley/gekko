@@ -28,7 +28,7 @@ const PaperTrader = function() {
   this.portfolio = {
     asset: calcConfig.simulationBalance.asset,
     currency: calcConfig.simulationBalance.currency,
-  }
+  };
 
   this.balance = false;
 
@@ -38,20 +38,20 @@ const PaperTrader = function() {
 
   this.propogatedTrades = 0;
   this.propogatedTriggers = 0;
-}
+};
 
 PaperTrader.prototype.relayPortfolioChange = function() {
   this.deferredEmit('portfolioChange', {
     asset: this.portfolio.asset,
     currency: this.portfolio.currency
   });
-}
+};
 
 PaperTrader.prototype.relayPortfolioValueChange = function() {
   this.deferredEmit('portfolioValueChange', {
     balance: this.getBalance()
   });
-}
+};
 
 PaperTrader.prototype.extractFee = function(amount) {
   amount *= 1e8;
@@ -59,11 +59,11 @@ PaperTrader.prototype.extractFee = function(amount) {
   amount = Math.floor(amount);
   amount /= 1e8;
   return amount;
-}
+};
 
 PaperTrader.prototype.setStartBalance = function() {
   this.balance = this.getBalance();
-}
+};
 
 // after every succesfull trend ride we hopefully end up
 // with more BTC than we started with, this function
@@ -72,112 +72,180 @@ PaperTrader.prototype.updatePosition = function(what) {
 
   let cost;
   let amount;
+  let self = this;
 
+  function long() {
+    if (self.portfolio.asset === 0) {
+      cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
+      self.portfolio.asset +=
+        self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
+      amount = self.portfolio.asset;
+      self.portfolio.currency.free = 0;
+      self.portfolio.currency.used = self.portfolio.currency.total - cost;
+      self.portfolio.currency.total = self.portfolio.currency.used;
+
+      self.exposed = true;
+      self.trades++;
+      this.tradeId = 'trade-' + (++this.propogatedTrades);
+      return {action: 'buy', cost, amount, tradeId: this.tradeId};
+    } else if (self.portfolio.asset < 0) {
+      cost = (1 - self.fee) * Math.abs(self.portfolio.asset * self.price);
+      self.portfolio.currency.free += self.extractFee(Math.abs(self.portfolio.asset * self.price));
+      self.portfolio.currency.used = 0;
+      self.portfolio.currency.total = self.portfolio.currency.free;
+      amount = self.portfolio.asset;
+      self.portfolio.asset = 0;
+
+      self.exposed = false;
+      self.trades++;
+      this.tradeId = 'trade-' + (++this.propogatedTrades);
+      return {action: 'buy', cost, amount, tradeId: this.tradeId};
+    }
+
+    return null;
+  }
+
+  function short() {
+    if (self.portfolio.asset === 0) {
+      cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
+      self.portfolio.asset -=
+        self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
+      amount = Math.abs(self.portfolio.asset);
+      self.portfolio.currency.free = 0;
+      self.portfolio.currency.used = self.portfolio.currency.total - cost;
+      self.portfolio.currency.total = self.portfolio.currency.used;
+
+      self.exposed = true;
+      self.trades++;
+      this.tradeId = 'trade-' + (++this.propogatedTrades);
+      return {action: 'sell', cost, amount, tradeId: this.tradeId};
+    } else if (self.portfolio.asset > 0) {
+      cost = (1 - self.fee) * (self.portfolio.asset * self.price);
+      self.portfolio.currency.free += self.extractFee(self.portfolio.asset * self.price);
+      self.portfolio.currency.total += self.portfolio.currency.free;
+      self.portfolio.currency.used = 0;
+      amount = self.portfolio.asset;
+      self.portfolio.asset = 0;
+
+      self.exposed = false;
+      self.trades++;
+      this.tradeId = 'trade-' + (++this.propogatedTrades);
+      return {action: 'sell', cost, amount, tradeId: this.tradeId};
+    }
+
+    return null;
+  }
+
+  function emitEvents(r) {
+    if (!r) {
+      return;
+    }
+    this.deferredEmit('tradeInitiated', {
+      id: r.tradeId,
+      adviceId: advice.id,
+      action: r.action,
+      portfolio: _.clone(this.portfolio),
+      balance: this.getBalance(),
+      date: advice.date,
+    });
+
+    this.relayPortfolioChange();
+    this.relayPortfolioValueChange();
+
+    this.deferredEmit('tradeCompleted', {
+      id: r.tradeId,
+      adviceId: advice.id,
+      action: r.action,
+      cont: r.cost,
+      amount: r.amount,
+      price: this.price,
+      portfolio: this.portfolio,
+      balance: this.getBalance(),
+      date: advice.date,
+      effectivePrice: r.effectivePrice,
+      feePercent: this.rawFee
+    });
+  }
+
+  const effectivePrice = this.price * this.fee;
   // virtually trade all {currency} to {asset}
   // at the current price (minus fees)
   if(what === 'long') {
-    cost = (1 - this.fee) * this.portfolio.currency;
-    this.portfolio.asset += this.extractFee(this.portfolio.currency / this.price);
-    amount = this.portfolio.asset;
-    this.portfolio.currency = 0;
-
-    this.exposed = true;
-    this.trades++;
+    emitEvents(effectivePrice, ...long());
   }
 
   // virtually trade all {currency} to {asset}
   // at the current price (minus fees)
   else if(what === 'short') {
-    cost = (1 - this.fee) * (this.portfolio.asset * this.price);
-    this.portfolio.currency += this.extractFee(this.portfolio.asset * this.price);
-    amount = this.portfolio.currency / this.price;
-    this.portfolio.asset = 0;
-
-    this.exposed = false;
-    this.trades++;
+    emitEvents(effectivePrice, ...short());
+  } else if(what === 'close') {
+    if (this.portfolio.asset > 0) {
+      emitEvents(effectivePrice, ...short());
+    } else {
+      emitEvents(effectivePrice, ...long());
+    }
+  } else if(what === 'close_then_short') {
+    if (this.portfolio.asset > 0) {
+      emitEvents(effectivePrice, ...short());
+      emitEvents(effectivePrice, ...short());
+    } else if (this.portfolio.asset === 0) {
+      emitEvents(effectivePrice, ...short());
+    }
+  } else if(what === 'close_then_long') {
+    if (this.portfolio.asset < 0) {
+      emitEvents(effectivePrice, ...long());
+      emitEvents(effectivePrice, ...long());
+    } else if (this.portfolio.asset === 0) {
+      emitEvents(effectivePrice, ...long());
+    }
   }
-
-  const effectivePrice = this.price * this.fee;
-
-  return { cost, amount, effectivePrice };
-}
+};
 
 PaperTrader.prototype.getBalance = function() {
   return this.portfolio.currency + this.price * this.portfolio.asset;
-}
+};
 
 PaperTrader.prototype.now = function() {
   return this.candle.start.clone().add(1, 'minute');
-}
+};
 
 PaperTrader.prototype.processAdvice = function(advice) {
   let action;
-  if(advice.recommendation === 'short') {
-    action = 'sell';
+  let self = this;
 
-    // clean up potential old stop trigger
-    if(this.activeStopTrigger) {
-      this.deferredEmit('triggerAborted', {
-        id: this.activeStopTrigger.id,
+  function cancelActiveStopTrigger() {
+    if(self.activeStopTrigger) {
+      self.deferredEmit('triggerAborted', {
+        id: self.activeStopTrigger.id,
         date: advice.date
       });
 
-      delete this.activeStopTrigger;
+      delete self.activeStopTrigger;
     }
+  }
 
+  if(advice.recommendation === 'short') {
+    action = 'sell';
+    cancelActiveStopTrigger();
   } else if(advice.recommendation === 'long') {
     action = 'buy';
-
     if(advice.trigger) {
-
       // clean up potential old stop trigger
-      if(this.activeStopTrigger) {
-        this.deferredEmit('triggerAborted', {
-          id: this.activeStopTrigger.id,
-          date: advice.date
-        });
-
-        delete this.activeStopTrigger;
-      }
-
+      cancelActiveStopTrigger();
       this.createTrigger(advice);
     }
+  } else if(advice.recommendation === 'close') {
+    cancelActiveStopTrigger();
+  } else if(advice.recommendation === 'close_then_long') {
+  } else if(advice.recommendation === 'close_then_short') {
   } else {
     return log.warn(
       `[Papertrader] ignoring unknown advice recommendation: ${advice.recommendation}`
     );
   }
 
-  this.tradeId = 'trade-' + (++this.propogatedTrades);
-
-  this.deferredEmit('tradeInitiated', {
-    id: this.tradeId,
-    adviceId: advice.id,
-    action,
-    portfolio: _.clone(this.portfolio),
-    balance: this.getBalance(),
-    date: advice.date,
-  });
-
-  const { cost, amount, effectivePrice } = this.updatePosition(advice.recommendation);
-
-  this.relayPortfolioChange();
-  this.relayPortfolioValueChange();
-
-  this.deferredEmit('tradeCompleted', {
-    id: this.tradeId,
-    adviceId: advice.id,
-    action,
-    cost,
-    amount,
-    price: this.price,
-    portfolio: this.portfolio,
-    balance: this.getBalance(),
-    date: advice.date,
-    effectivePrice,
-    feePercent: this.rawFee
-  });
-}
+  this.updatePosition(advice.recommendation);
+};
 
 PaperTrader.prototype.createTrigger = function(advice) {
   const trigger = advice.trigger;
@@ -212,7 +280,7 @@ PaperTrader.prototype.createTrigger = function(advice) {
   } else {
     log.warn(`[Papertrader] Gekko does not know trigger with type "${trigger.type}".. Ignoring stop.`);
   }
-}
+};
 
 PaperTrader.prototype.onStopTrigger = function() {
 
@@ -243,7 +311,7 @@ PaperTrader.prototype.onStopTrigger = function() {
   });
 
   delete this.activeStopTrigger;
-}
+};
 
 PaperTrader.prototype.processCandle = function(candle, done) {
   this.price = candle.close;
@@ -264,6 +332,6 @@ PaperTrader.prototype.processCandle = function(candle, done) {
   }
 
   done();
-}
+};
 
 module.exports = PaperTrader;

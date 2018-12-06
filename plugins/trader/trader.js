@@ -21,7 +21,7 @@ const Trader = function(next) {
 
   this.propogatedTrades = 0;
   this.propogatedTriggers = 0;
-  this.leverageRatio = 3;
+  // this.leverageRatio = 3;
 
   try {
     this.broker = new Broker(this.brokerConfig);
@@ -223,7 +223,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     // amount = this.portfolio.currency / this.price * 0.95;
     orderDirection = 'buy';
-    amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+    amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
 
     log.info(
       'Trader',
@@ -244,8 +244,6 @@ Trader.prototype.processAdvice = function(advice) {
         reason: "Portfolio already in short position."
       });
     }
-
-    cleanupStopTrigger();
 
     // amount = this.portfolio.asset;
     orderDirection = 'sell';
@@ -275,6 +273,7 @@ Trader.prototype.processAdvice = function(advice) {
       orderDirection = 'buy';
     }
 
+    cleanupStopTrigger();
     amount = Math.abs(this.portfolio.asset);
   } else if(direction === 'close_then_buy') {
     if(this.exposedLong) {
@@ -439,7 +438,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
         });
 
         if(
-          side === 'buy' &&
+          !!this.exposure &&
           advice.trigger &&
           advice.trigger.type === 'trailingStop'
         ) {
@@ -453,6 +452,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
             properties: {
               trail: trigger.trailValue,
               initialPrice: summary.price,
+              exposure: this.exposure
             }
           });
 
@@ -492,7 +492,7 @@ Trader.prototype.onStopTrigger = function(price) {
   });
 
   const adviceMock = {
-    recommendation: 'short',
+    recommendation: this.exposure > 0 ? 'short' : 'long',
     id: this.activeStopTrigger.adviceId
   };
 

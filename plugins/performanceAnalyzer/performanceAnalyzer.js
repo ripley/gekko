@@ -19,7 +19,7 @@ const PerformanceAnalyzer = function() {
   this.dates = {
     start: false,
     end: false
-  }
+  };
 
   this.startPrice = 0;
   this.endPrice = 0;
@@ -32,33 +32,35 @@ const PerformanceAnalyzer = function() {
   this.trades = 0;
 
   this.exposure = 0;
-  
+  this.exposedLong = false;
+  this.exposedShort = false;
+
   this.roundTrips = [];
   this.losses = [];
   this.roundTrip = {
     id: 0,
     entry: false,
     exit: false
-  }
+  };
 
   this.portfolio = {};
   this.balance;
 
   this.start = {};
   this.openRoundTrip = false;
-}
+};
 
 PerformanceAnalyzer.prototype.processPortfolioValueChange = function(event) {
   if(!this.start.balance) {
     this.start.balance = event.balance;
   }
-}
+};
 
 PerformanceAnalyzer.prototype.processPortfolioChange = function(event) {
   if(!this.start.portfolio) {
     this.start.portfolio = event;
   }
-}
+};
 
 PerformanceAnalyzer.prototype.processCandle = function(candle, done) {
   this.price = candle.close;
@@ -76,7 +78,7 @@ PerformanceAnalyzer.prototype.processCandle = function(candle, done) {
   }
 
   done();
-}
+};
 
 PerformanceAnalyzer.prototype.emitRoundtripUpdate = function() {
   const uPnl = this.price - this.roundTrip.entry.price;
@@ -109,29 +111,47 @@ PerformanceAnalyzer.prototype.registerRoundtripPart = function(trade) {
     return;
   }
 
-  if(trade.action === 'buy') {
-    if (this.roundTrip.exit) {
-      this.roundTrip.id++;
-      this.roundTrip.exit = false
+  let self = this;
+
+  function openPosition() {
+    if (self.roundTrip.exit) {
+      self.roundTrip.id++;
+      self.roundTrip.exit = false
     }
 
-    this.roundTrip.entry = {
+    self.roundTrip.entry = {
       date: trade.date,
       price: trade.price,
       total: trade.portfolio.currency + (trade.portfolio.asset * trade.price),
-    }
-    this.openRoundTrip = true;
-  } else if(trade.action === 'sell') {
-    this.roundTrip.exit = {
-      date: trade.date,
-      price: trade.price,
-      total: trade.portfolio.currency + (trade.portfolio.asset * trade.price),
-    }
-    this.openRoundTrip = false;
-
-    this.handleCompletedRoundtrip();
+    };
+    self.openRoundTrip = true;
   }
-}
+
+  function closePosition() {
+    self.roundTrip.exit = {
+      date: trade.date,
+      price: trade.price,
+      total: trade.portfolio.currency + (trade.portfolio.asset * trade.price),
+    };
+    self.openRoundTrip = false;
+
+    self.handleCompletedRoundtrip();
+  }
+
+  if(trade.action === 'buy') {
+    if (this.portfolio.asset === 0) {
+      openPosition();
+    } else if (this.portfolio.asset < 0) {
+      closePosition();
+    }
+  } else if(trade.action === 'sell') {
+    if (this.portfolio.asset === 0) {
+      openPosition();
+    } else if (this.portfolio.asset > 0) {
+      closePosition();
+    }
+  }
+};
 
 PerformanceAnalyzer.prototype.handleCompletedRoundtrip = function() {
   var roundtrip = {
@@ -146,7 +166,7 @@ PerformanceAnalyzer.prototype.handleCompletedRoundtrip = function() {
     exitBalance: this.roundTrip.exit.total,
 
     duration: this.roundTrip.exit.date.diff(this.roundTrip.entry.date)
-  }
+  };
 
   roundtrip.pnl = roundtrip.exitBalance - roundtrip.entryBalance;
   roundtrip.profit = (100 * roundtrip.exitBalance / roundtrip.entryBalance) - 100;
@@ -163,7 +183,7 @@ PerformanceAnalyzer.prototype.handleCompletedRoundtrip = function() {
   if (roundtrip.exitBalance < roundtrip.entryBalance)
     this.losses.push(roundtrip);
   
-}
+};
 
 PerformanceAnalyzer.prototype.calculateReportStatistics = function() {
   if(!this.start.balance || !this.start.portfolio) {
@@ -210,12 +230,12 @@ PerformanceAnalyzer.prototype.calculateReportStatistics = function() {
     exposure: percentExposure,
     sharpe,
     downside
-  }
+  };
 
   report.alpha = report.profit - report.market;
 
   return report;
-}
+};
 
 PerformanceAnalyzer.prototype.finalize = function(done) {
   if(!this.trades) {

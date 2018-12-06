@@ -8,7 +8,7 @@ const EventEmitter = require('events');
 // @param trail: fixed offset from the price
 // @param onTrigger: fn to call when the stop triggers
 class TrailingStop extends EventEmitter {
-  constructor({trail, initialPrice, onTrigger}) {
+  constructor({trail, initialPrice, exposure, onTrigger}) {
     super();
 
     this.trail = trail;
@@ -16,7 +16,7 @@ class TrailingStop extends EventEmitter {
     this.onTrigger = onTrigger;
 
     this.previousPrice = initialPrice;
-    this.trailingPoint = initialPrice - this.trail;
+    this.trailingPoint = exposure > 0 ? initialPrice - this.trail : initialPrice + this.trail;
   }
 
   updatePrice(price) {
