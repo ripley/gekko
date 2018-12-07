@@ -29,10 +29,10 @@ Logger.prototype.logReport = function(trade, report) {
   var start = this.round(report.startBalance);
   var current = this.round(report.balance);
 
-  log.info(`(PROFIT REPORT) original balance:\t\t ${start} ${this.currency}`);
-  log.info(`(PROFIT REPORT) current balance:\t\t ${current} ${this.currency}`);
+  log.info(`(PROFIT REPORT) original balance:\t\t ${start} ${this.currency.total}`);
+  log.info(`(PROFIT REPORT) current balance:\t\t ${current} ${this.currency.total}`);
   log.info(
-    `(PROFIT REPORT) profit:\t\t\t\t ${this.round(report.profit)} ${this.currency}`,
+    `(PROFIT REPORT) profit:\t\t\t\t ${this.round(report.profit)} ${this.currency.total}`,
     `(${this.round(report.relativeProfit)}%)`
   );
 }
@@ -67,8 +67,8 @@ if(mode === 'backtest') {
 
         log.info(
           `${at}: Paper trader simulated a SELL`,
-          `\t${this.round(trade.portfolio.currency)}`,
-          `${this.currency} <= ${this.round(trade.portfolio.asset)}`,
+          `\t${this.round(trade.portfolio.currency.total)}`,
+          `${this.currency.free} <= ${this.round(trade.portfolio.asset)}`,
           `${this.asset}`
         );
 
@@ -76,8 +76,8 @@ if(mode === 'backtest') {
 
       log.info(
         `${at}: Paper trader simulated a BUY`,
-        `\t${this.round(trade.portfolio.currency)}`,
-        `${this.currency}\t=> ${this.round(trade.portfolio.asset)}`,
+        `\t${this.round(trade.portfolio.currency.total)}`,
+        `${this.currency.free}\t=> ${this.round(trade.portfolio.asset)}`,
         `${this.asset}`
       );
   }
@@ -96,8 +96,8 @@ if(mode === 'backtest') {
     log.info(`(PROFIT REPORT) timespan:\t\t\t ${report.timespan}`);
     log.info(`(PROFIT REPORT) exposure:\t\t\t ${report.exposure}`);
     log.info();
-    log.info(`(PROFIT REPORT) start price:\t\t\t ${report.startPrice} ${this.currency}`);
-    log.info(`(PROFIT REPORT) end price:\t\t\t ${report.endPrice} ${this.currency}`);
+    log.info(`(PROFIT REPORT) start price:\t\t\t ${report.startPrice} ${this.currency.total}`);
+    log.info(`(PROFIT REPORT) end price:\t\t\t ${report.endPrice} ${this.currency.total}`);
     log.info(`(PROFIT REPORT) Market:\t\t\t\t ${this.round(report.market)}%`);
     log.info();
     log.info(`(PROFIT REPORT) amount of trades:\t\t ${report.trades}`);

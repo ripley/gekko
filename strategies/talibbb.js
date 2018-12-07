@@ -15,7 +15,15 @@ strategy.init = function () {
     duration: 0,
     persisted: false
   };
-  this.addTalibIndicator('bb', 'bbands', this.settings);
+  let settings = {
+    optInTimePeriod: 100,
+    optInNbDevUp: 2,
+    optInNbDevDn: 2,
+    optInMAType: 0
+  };
+
+  //this.addTalibIndicator('bb', 'bbands', this.settings);
+  this.addTalibIndicator('bb', 'bbands', settings);
 };
 
 strategy.log = function(candle) {
@@ -57,28 +65,27 @@ strategy.check = function (candle) {
     if (zone === 'top') {
       if (this.trend.zone === 'high') {
         console.log('>>>>> SIGNALING ADVICE LONG <<<<<<<<<<<<');
-        // this.advice('long');
+        this.advice('long');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_LONG <<<<<<<<<<<<');
-        // this.advice('close_then_long');
+        this.advice('close_then_long');
       }
     }
 
-    if (this.trend.zone === 'bottom') {
-      console.log('>>>>> SIGNALING ADVICE SHORT <<<<<<<<<<<<');
+    if (zone === 'bottom') {
       if (this.trend.zone === 'low') {
-        console.log('>>>>> SIGNALING ADVICE LONG <<<<<<<<<<<<');
-        // this.advice('short');
+        console.log('>>>>> SIGNALING ADVICE SHORT <<<<<<<<<<<<');
+        this.advice('short');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
-        // this.advice('close_then_short');
+        this.advice('close_then_short');
       }
     }
 
     if ((this.trend.zone === 'low' && zone === 'high') ||
       (this.trend.zone === 'high' && zone === 'low')) {
-      console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
-      // this.advice('close');
+      console.log('>>>>> SIGNALING ADVICE CLOSE <<<<<<<<<<<<');
+      this.advice('close');
     }
 
     this.trend = {

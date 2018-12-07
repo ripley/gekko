@@ -68,11 +68,12 @@ PaperTrader.prototype.setStartBalance = function() {
 // after every succesfull trend ride we hopefully end up
 // with more BTC than we started with, this function
 // calculates Gekko's profit in %.
-PaperTrader.prototype.updatePosition = function(what) {
+PaperTrader.prototype.updatePosition = function(advice) {
 
   let cost;
   let amount;
   let self = this;
+  let what = advice.recommendation;
 
   function long() {
     if (self.portfolio.asset === 0) {
@@ -86,8 +87,8 @@ PaperTrader.prototype.updatePosition = function(what) {
 
       self.exposed = true;
       self.trades++;
-      this.tradeId = 'trade-' + (++this.propogatedTrades);
-      return {action: 'buy', cost, amount, tradeId: this.tradeId};
+      self.tradeId = 'trade-' + (++self.propogatedTrades);
+      return {action: 'buy', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset < 0) {
       cost = (1 - self.fee) * Math.abs(self.portfolio.asset * self.price);
       self.portfolio.currency.free += self.extractFee(Math.abs(self.portfolio.asset * self.price));
@@ -98,8 +99,8 @@ PaperTrader.prototype.updatePosition = function(what) {
 
       self.exposed = false;
       self.trades++;
-      this.tradeId = 'trade-' + (++this.propogatedTrades);
-      return {action: 'buy', cost, amount, tradeId: this.tradeId};
+      self.tradeId = 'trade-' + (++self.propogatedTrades);
+      return {action: 'buy', cost, amount, tradeId: self.tradeId};
     }
 
     return null;
@@ -117,8 +118,8 @@ PaperTrader.prototype.updatePosition = function(what) {
 
       self.exposed = true;
       self.trades++;
-      this.tradeId = 'trade-' + (++this.propogatedTrades);
-      return {action: 'sell', cost, amount, tradeId: this.tradeId};
+      self.tradeId = 'trade-' + (++self.propogatedTrades);
+      return {action: 'sell', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset > 0) {
       cost = (1 - self.fee) * (self.portfolio.asset * self.price);
       self.portfolio.currency.free += self.extractFee(self.portfolio.asset * self.price);
@@ -129,80 +130,80 @@ PaperTrader.prototype.updatePosition = function(what) {
 
       self.exposed = false;
       self.trades++;
-      this.tradeId = 'trade-' + (++this.propogatedTrades);
-      return {action: 'sell', cost, amount, tradeId: this.tradeId};
+      self.tradeId = 'trade-' + (++self.self);
+      return {action: 'sell', cost, amount, tradeId: self.tradeId};
     }
 
     return null;
   }
 
-  function emitEvents(r) {
+function emitEvents(r) {
     if (!r) {
       return;
     }
-    this.deferredEmit('tradeInitiated', {
+    self.deferredEmit('tradeInitiated', {
       id: r.tradeId,
-      adviceId: advice.id,
+      adviceId: r.id,
       action: r.action,
-      portfolio: _.clone(this.portfolio),
-      balance: this.getBalance(),
-      date: advice.date,
+      portfolio: _.clone(self.portfolio),
+      balance: self.getBalance(),
+      date: r.date,
     });
 
-    this.relayPortfolioChange();
-    this.relayPortfolioValueChange();
+    self.relayPortfolioChange();
+    self.relayPortfolioValueChange();
 
-    this.deferredEmit('tradeCompleted', {
+    self.deferredEmit('tradeCompleted', {
       id: r.tradeId,
-      adviceId: advice.id,
+      adviceId: r.id,
       action: r.action,
       cont: r.cost,
       amount: r.amount,
-      price: this.price,
-      portfolio: this.portfolio,
-      balance: this.getBalance(),
-      date: advice.date,
+      price: self.price,
+      portfolio: self.portfolio,
+      balance: self.getBalance(),
+      date: r.date,
       effectivePrice: r.effectivePrice,
-      feePercent: this.rawFee
+      feePercent: self.rawFee
     });
   }
 
-  const effectivePrice = this.price * this.fee;
+  const effectivePrice = self.price * self.fee;
   // virtually trade all {currency} to {asset}
   // at the current price (minus fees)
   if(what === 'long') {
-    emitEvents(effectivePrice, ...long());
+    emitEvents({effectivePrice, ...advice, ...long()});
   }
 
   // virtually trade all {currency} to {asset}
   // at the current price (minus fees)
   else if(what === 'short') {
-    emitEvents(effectivePrice, ...short());
+    emitEvents({effectivePrice, ...advice, ...short()});
   } else if(what === 'close') {
     if (this.portfolio.asset > 0) {
-      emitEvents(effectivePrice, ...short());
+      emitEvents({effectivePrice, ...advice, ...short()});
     } else {
-      emitEvents(effectivePrice, ...long());
+      emitEvents({effectivePrice, ...advice, ...long()});
     }
   } else if(what === 'close_then_short') {
-    if (this.portfolio.asset > 0) {
-      emitEvents(effectivePrice, ...short());
-      emitEvents(effectivePrice, ...short());
-    } else if (this.portfolio.asset === 0) {
-      emitEvents(effectivePrice, ...short());
+    if (self.portfolio.asset > 0) {
+      emitEvents({effectivePrice, ...advice, ...short()});
+      emitEvents({effectivePrice, ...advice, ...short()});
+    } else if (self.portfolio.asset === 0) {
+      emitEvents({effectivePrice, ...advice, ...short()});
     }
   } else if(what === 'close_then_long') {
-    if (this.portfolio.asset < 0) {
-      emitEvents(effectivePrice, ...long());
-      emitEvents(effectivePrice, ...long());
-    } else if (this.portfolio.asset === 0) {
-      emitEvents(effectivePrice, ...long());
+    if (self.portfolio.asset < 0) {
+      emitEvents({effectivePrice, ...advice, ...long()});
+      emitEvents({effectivePrice, ...advice, ...long()});
+    } else if (self.portfolio.asset === 0) {
+      emitEvents({effectivePrice, ...advice, ...long()});
     }
   }
 };
 
 PaperTrader.prototype.getBalance = function() {
-  return this.portfolio.currency + this.price * this.portfolio.asset;
+  return this.portfolio.currency.free + this.price * this.portfolio.asset;
 };
 
 PaperTrader.prototype.now = function() {
@@ -244,7 +245,7 @@ PaperTrader.prototype.processAdvice = function(advice) {
     );
   }
 
-  this.updatePosition(advice.recommendation);
+  this.updatePosition(advice);
 };
 
 PaperTrader.prototype.createTrigger = function(advice) {

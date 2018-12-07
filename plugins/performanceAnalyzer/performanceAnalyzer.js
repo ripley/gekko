@@ -122,7 +122,7 @@ PerformanceAnalyzer.prototype.registerRoundtripPart = function(trade) {
     self.roundTrip.entry = {
       date: trade.date,
       price: trade.price,
-      total: trade.portfolio.currency + (trade.portfolio.asset * trade.price),
+      total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
     };
     self.openRoundTrip = true;
   }
@@ -131,7 +131,7 @@ PerformanceAnalyzer.prototype.registerRoundtripPart = function(trade) {
     self.roundTrip.exit = {
       date: trade.date,
       price: trade.price,
-      total: trade.portfolio.currency + (trade.portfolio.asset * trade.price),
+      total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
     };
     self.openRoundTrip = false;
 
