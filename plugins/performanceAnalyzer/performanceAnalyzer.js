@@ -106,10 +106,10 @@ PerformanceAnalyzer.prototype.processTradeCompleted = function(trade) {
 }
 
 PerformanceAnalyzer.prototype.registerRoundtripPart = function(trade) {
-  if(this.trades === 1 && trade.action === 'sell') {
-    // this is not part of a valid roundtrip
-    return;
-  }
+  // if(this.trades === 1 && trade.action === 'sell') {
+  //   // this is not part of a valid roundtrip
+  //   return;
+  // }
 
   let self = this;
 
@@ -122,32 +122,37 @@ PerformanceAnalyzer.prototype.registerRoundtripPart = function(trade) {
     self.roundTrip.entry = {
       date: trade.date,
       price: trade.price,
-      total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
+      // total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
+      total: trade.portfolio.currency.used
     };
     self.openRoundTrip = true;
   }
 
   function closePosition() {
-    self.roundTrip.exit = {
-      date: trade.date,
-      price: trade.price,
-      total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
-    };
-    self.openRoundTrip = false;
+    if (self.openRoundTrip) {
+      self.roundTrip.exit = {
+        date: trade.date,
+        price: trade.price,
+        // total: trade.portfolio.currency.free + (trade.portfolio.asset * trade.price),
+        total: trade.portfolio.currency.free // Or total, should be same.
+      };
+      self.openRoundTrip = false;
 
-    self.handleCompletedRoundtrip();
+      self.handleCompletedRoundtrip();
+    }
   }
 
+  // asset in portfolio is the value after current trade.
   if(trade.action === 'buy') {
-    if (this.portfolio.asset === 0) {
+    if (this.portfolio.asset > 0) {
       openPosition();
-    } else if (this.portfolio.asset < 0) {
+    } else if (this.portfolio.asset === 0) {
       closePosition();
     }
   } else if(trade.action === 'sell') {
-    if (this.portfolio.asset === 0) {
+    if (this.portfolio.asset < 0) {
       openPosition();
-    } else if (this.portfolio.asset > 0) {
+    } else if (this.portfolio.asset === 0) {
       closePosition();
     }
   }

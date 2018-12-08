@@ -31,6 +31,8 @@ const PaperTrader = function() {
   };
 
   this.balance = false;
+  this.borrowed = 0;
+  this.borrowStartDate = null;
 
   if(this.portfolio.asset > 0) {
     this.exposed = true;
@@ -76,11 +78,17 @@ PaperTrader.prototype.updatePosition = function(advice) {
   let what = advice.recommendation;
 
   function long() {
+    if(self.portfolio.currency.free < 0) {
+      return;
+    }
     if (self.portfolio.asset === 0) {
       cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
       self.portfolio.asset +=
         self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
       amount = self.portfolio.asset;
+      self.borrowed =
+        self.portfolio.currency.free * (calcConfig.leverageRatio - 1);
+      self.borrowStartDate = advice.date;
       self.portfolio.currency.free = 0;
       self.portfolio.currency.used = self.portfolio.currency.total - cost;
       self.portfolio.currency.total = self.portfolio.currency.used;
@@ -91,7 +99,10 @@ PaperTrader.prototype.updatePosition = function(advice) {
       return {action: 'buy', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset < 0) {
       cost = (1 - self.fee) * Math.abs(self.portfolio.asset * self.price);
+      let timeDiff = Math.abs(advice.date.valueOf() - self.borrowStartDate.valueOf());
+      let diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
       self.portfolio.currency.free += self.extractFee(Math.abs(self.portfolio.asset * self.price));
+      self.portfolio.currency.free -= (1 + calcConfig.borrowDailyInterest * diffDays) * self.borrowed;
       self.portfolio.currency.used = 0;
       self.portfolio.currency.total = self.portfolio.currency.free;
       amount = self.portfolio.asset;
@@ -107,11 +118,17 @@ PaperTrader.prototype.updatePosition = function(advice) {
   }
 
   function short() {
+    if(self.portfolio.currency.free < 0) {
+      return;
+    }
     if (self.portfolio.asset === 0) {
       cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
       self.portfolio.asset -=
         self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
       amount = Math.abs(self.portfolio.asset);
+      self.borrowed =
+        self.portfolio.currency.free * (calcConfig.leverageRatio - 1);
+      self.borrowStartDate = advice.date;
       self.portfolio.currency.free = 0;
       self.portfolio.currency.used = self.portfolio.currency.total - cost;
       self.portfolio.currency.total = self.portfolio.currency.used;
@@ -122,8 +139,11 @@ PaperTrader.prototype.updatePosition = function(advice) {
       return {action: 'sell', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset > 0) {
       cost = (1 - self.fee) * (self.portfolio.asset * self.price);
-      self.portfolio.currency.free += self.extractFee(self.portfolio.asset * self.price);
-      self.portfolio.currency.total += self.portfolio.currency.free;
+      let timeDiff = Math.abs(advice.date.valueOf() - self.borrowStartDate.valueOf());
+      let diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      self.portfolio.currency.free -= (1 + calcConfig.borrowDailyInterest * diffDays) * self.borrowed;
+      self.portfolio.currency.free += self.extractFee(Math.abs(self.portfolio.asset * self.price));
+      self.portfolio.currency.total = self.portfolio.currency.free;
       self.portfolio.currency.used = 0;
       amount = self.portfolio.asset;
       self.portfolio.asset = 0;
@@ -169,35 +189,46 @@ function emitEvents(r) {
   }
 
   const effectivePrice = self.price * self.fee;
-  // virtually trade all {currency} to {asset}
-  // at the current price (minus fees)
-  if(what === 'long') {
-    emitEvents({effectivePrice, ...advice, ...long()});
+
+  function emitShortEvent() {
+    let capitalInfo = short();
+    if (!!capitalInfo) {
+      emitEvents({effectivePrice, ...advice, ...capitalInfo});
+    }
+  }
+
+  function emitLongEvent() {
+    let capitalInfo = long();
+    if (!!capitalInfo) {
+      emitEvents({effectivePrice, ...advice, ...capitalInfo});
+    }
   }
 
   // virtually trade all {currency} to {asset}
   // at the current price (minus fees)
-  else if(what === 'short') {
-    emitEvents({effectivePrice, ...advice, ...short()});
+  if(what === 'long') {
+    emitLongEvent();
+  } else if(what === 'short') {
+    emitShortEvent();
   } else if(what === 'close') {
     if (this.portfolio.asset > 0) {
-      emitEvents({effectivePrice, ...advice, ...short()});
-    } else {
-      emitEvents({effectivePrice, ...advice, ...long()});
+      emitShortEvent();
+    } else if (this.portfolio.asset < 0) {
+      emitLongEvent();
     }
   } else if(what === 'close_then_short') {
     if (self.portfolio.asset > 0) {
-      emitEvents({effectivePrice, ...advice, ...short()});
-      emitEvents({effectivePrice, ...advice, ...short()});
+      emitShortEvent();
+      emitShortEvent();
     } else if (self.portfolio.asset === 0) {
-      emitEvents({effectivePrice, ...advice, ...short()});
+      emitShortEvent();
     }
   } else if(what === 'close_then_long') {
     if (self.portfolio.asset < 0) {
-      emitEvents({effectivePrice, ...advice, ...long()});
-      emitEvents({effectivePrice, ...advice, ...long()});
+      emitLongEvent();
+      emitLongEvent();
     } else if (self.portfolio.asset === 0) {
-      emitEvents({effectivePrice, ...advice, ...long()});
+      emitLongEvent();
     }
   }
 };

@@ -3,6 +3,7 @@ feeTaker = 0.25
 feeUsing = 'maker'
 slippage = 0.05
 leverageRatio = 3
+borrowDailyInterest = 0.08
 
 
 [simulationBalance]

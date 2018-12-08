@@ -22,8 +22,8 @@ strategy.init = function () {
     optInMAType: 0
   };
 
-  //this.addTalibIndicator('bb', 'bbands', this.settings);
-  this.addTalibIndicator('bb', 'bbands', settings);
+  this.addTalibIndicator('bb', 'bbands', this.settings);
+  // this.addTalibIndicator('bb', 'bbands', settings);
 };
 
 strategy.log = function(candle) {
