@@ -32,6 +32,7 @@ const PaperTrader = function() {
 
   this.balance = false;
   this.borrowed = 0;
+  this.sellPrice = null;
   this.borrowStartDate = null;
 
   if(this.portfolio.asset > 0) {
@@ -82,6 +83,7 @@ PaperTrader.prototype.updatePosition = function(advice) {
       return;
     }
     if (self.portfolio.asset === 0) {
+      // Long to open: Confidence: 80%
       cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
       self.portfolio.asset +=
         self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
@@ -98,11 +100,13 @@ PaperTrader.prototype.updatePosition = function(advice) {
       self.tradeId = 'trade-' + (++self.propogatedTrades);
       return {action: 'buy', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset < 0) {
+      // Long to close: Confidence:
       cost = (1 - self.fee) * Math.abs(self.portfolio.asset * self.price);
       let timeDiff = Math.abs(advice.date.valueOf() - self.borrowStartDate.valueOf());
       let diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
-      self.portfolio.currency.free += self.extractFee(Math.abs(self.portfolio.asset * self.price));
-      self.portfolio.currency.free -= (1 + calcConfig.borrowDailyInterest * diffDays) * self.borrowed;
+      let profit = (self.price - self.sellPrice) * self.portfolio.asset;
+      self.portfolio.currency.free += self.portfolio.currency.total + profit - cost;
+      self.portfolio.currency.free -= calcConfig.borrowDailyInterest * diffDays * self.borrowed;
       self.portfolio.currency.used = 0;
       self.portfolio.currency.total = self.portfolio.currency.free;
       amount = self.portfolio.asset;
@@ -122,10 +126,12 @@ PaperTrader.prototype.updatePosition = function(advice) {
       return;
     }
     if (self.portfolio.asset === 0) {
+      // Short to open: Confidence: 80%
       cost = (1 - self.fee) * self.portfolio.currency.free * calcConfig.leverageRatio;
       self.portfolio.asset -=
         self.extractFee(self.portfolio.currency.free * calcConfig.leverageRatio / self.price);
       amount = Math.abs(self.portfolio.asset);
+      self.sellPrice = self.price;
       self.borrowed =
         self.portfolio.currency.free * (calcConfig.leverageRatio - 1);
       self.borrowStartDate = advice.date;
@@ -138,6 +144,7 @@ PaperTrader.prototype.updatePosition = function(advice) {
       self.tradeId = 'trade-' + (++self.propogatedTrades);
       return {action: 'sell', cost, amount, tradeId: self.tradeId};
     } else if (self.portfolio.asset > 0) {
+      // Short to close: Confidence: 80%
       cost = (1 - self.fee) * (self.portfolio.asset * self.price);
       let timeDiff = Math.abs(advice.date.valueOf() - self.borrowStartDate.valueOf());
       let diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
@@ -234,7 +241,11 @@ function emitEvents(r) {
 };
 
 PaperTrader.prototype.getBalance = function() {
-  return this.portfolio.currency.free + this.price * this.portfolio.asset;
+  if (this.portfolio.asset >= 0) {
+    return this.portfolio.currency.free + this.price * this.portfolio.asset;
+  } else {
+    return this.portfolio.currency.used;
+  }
 };
 
 PaperTrader.prototype.now = function() {
