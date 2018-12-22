@@ -85,9 +85,11 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
 
 
       // make sure we grab back in history far enough
-      var secondsOverlap = 60 * 15; // 15 minutes
+      var secondsOverlap = 60 * 15 * 1000; // 15 minutes
       var idealExchangeStartTimeTS = localData.to - secondsOverlap;
       var idealExchangeStartTime = moment.unix(idealExchangeStartTimeTS).utc();
+      log.debug('\t\tsecondsOverlap:', secondsOverlap);
+      log.debug('\t\tidealExchangeStartTime:', idealExchangeStartTime);
 
       // already set the
       util.setConfigProperty(
@@ -124,6 +126,10 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
         localData = false;
       }
 
+      log.debug('\tStichable status:');
+      log.debug('\t\tlocalData:', localData);
+      log.debug('\t\texchangeData.from:', moment.unix(exchangeData.from).utc());
+      log.debug('\t\tlocalDatato:', moment.unix(localData.to).utc());
       var stitchable = localData && exchangeData.from <= localData.to;
       if(stitchable) {
         log.debug('\tStitching datasets');
