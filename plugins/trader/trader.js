@@ -247,7 +247,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     // amount = this.portfolio.asset;
     orderDirection = 'sell';
-    amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+    amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
 
     log.info(
       'Trader',
@@ -293,7 +293,7 @@ Trader.prototype.processAdvice = function(advice) {
       amount = Math.abs(this.portfolio.asset);
       cb = () => this.processAdvice({recommendation: 'long'})
     } else {
-      amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+      amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
     }
   } else if(direction === 'close_then_sell') {
     if(this.exposedShort) {
@@ -313,7 +313,7 @@ Trader.prototype.processAdvice = function(advice) {
       amount = Math.abs(this.portfolio.asset);
       cb = () => this.processAdvice({recommendation: 'short'})
     } else {
-      amount = this.portfolio.currency.free / this.price * 0.95 * this.leverageRatio;
+      amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
     }
   }
 
