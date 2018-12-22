@@ -469,6 +469,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
               props: {
                 trail: trigger.trailValue,
                 initialPrice: summary.price,
+                exposure: this.exposure
               }
             })
           }
@@ -492,7 +493,8 @@ Trader.prototype.onStopTrigger = function(price) {
   });
 
   const adviceMock = {
-    recommendation: this.exposure > 0 ? 'short' : 'long',
+    //recommendation: this.exposure > 0 ? 'short' : 'long',
+    recommendation: 'close',
     id: this.activeStopTrigger.adviceId
   };
 

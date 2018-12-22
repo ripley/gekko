@@ -17,6 +17,7 @@ class TrailingStop extends EventEmitter {
 
     this.previousPrice = initialPrice;
     this.trailingPoint = exposure > 0 ? initialPrice - this.trail : initialPrice + this.trail;
+    this.exposure = exposure;
   }
 
   updatePrice(price) {
@@ -24,14 +25,26 @@ class TrailingStop extends EventEmitter {
       return;
     }
 
-    if(price > this.trailingPoint + this.trail) {
-      this.trailingPoint = price - this.trail;
-    }
-
     this.previousPrice = price;
 
-    if(price <= this.trailingPoint) {
-      this.trigger();
+    if (this.exposure > 0) {
+      if(price > this.trailingPoint + this.trail) {
+        this.trailingPoint = price - this.trail;
+      }
+
+      if(price <= this.trailingPoint) {
+        this.trigger();
+      }
+    }
+
+    if (this.exposure < 0) {
+      if(price < this.trailingPoint - this.trail) {
+        this.trailingPoint = price + this.trail;
+      }
+
+      if(price >= this.trailingPoint) {
+        this.trigger();
+      }
     }
   }
 
