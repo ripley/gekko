@@ -23,7 +23,7 @@ const AsyncIndicatorRunner = function() {
     volume: []
   };
 
-  this.candlePropsCacheSize = 1000;
+  this.candlePropsCacheSize = 2000;
 
   this.inflight = false;
   this.backlog = [];
