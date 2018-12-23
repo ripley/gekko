@@ -82,7 +82,7 @@ var Base = function(settings) {
     this.asyncTick = true;
   else
     delete this.asyncIndicatorRunner;
-}
+};
 
 // teach our base trading method events
 util.makeEventEmitter(Base);
@@ -92,7 +92,7 @@ Base.prototype.tick = function(candle, done) {
 
   const afterAsync = () => {
     this.calculateSyncIndicators(candle, done);
-  }
+  };
 
   if(this.asyncTick) {
     this.asyncIndicatorRunner.processCandle(candle, () => {
@@ -107,14 +107,14 @@ Base.prototype.tick = function(candle, done) {
   } else {
     afterAsync();
   }
-}
+};
 
 Base.prototype.isBusy = function() {
   if(!this.asyncTick)
     return false;
 
   return this.asyncIndicatorRunner.inflight;
-}
+};
 
 Base.prototype.calculateSyncIndicators = function(candle, done) {
   // update all indicators
@@ -129,7 +129,7 @@ Base.prototype.calculateSyncIndicators = function(candle, done) {
   this.propogateTick(candle);
 
   return done();
-}
+};
 
 Base.prototype.propogateTick = function(candle) {
   this.candle = candle;
@@ -201,7 +201,7 @@ Base.prototype.propogateTick = function(candle) {
   const completed = this.age === this.processedTicks;
   if(completed && this.finishCb)
     this.finishCb();
-}
+};
 
 Base.prototype.processTrade = function(trade) {
   if(
@@ -216,15 +216,15 @@ Base.prototype.processTrade = function(trade) {
   }
 
   this.onTrade(trade);
-}
+};
 
 Base.prototype.addTalibIndicator = function(name, type, parameters) {
   this.asyncIndicatorRunner.addTalibIndicator(name, type, parameters);
-}
+};
 
 Base.prototype.addTulipIndicator = function(name, type, parameters) {
   this.asyncIndicatorRunner.addTulipIndicator(name, type, parameters);
-}
+};
 
 Base.prototype.addIndicator = function(name, type, parameters) {
   if(!_.contains(allowedIndicators, type))
@@ -236,7 +236,7 @@ Base.prototype.addIndicator = function(name, type, parameters) {
   return this.indicators[name] = new Indicators[type](parameters);
 
   // some indicators need a price stream, others need full candles
-}
+};
 
 Base.prototype.advice = function(newDirection) {
   // ignore legacy soft advice
@@ -295,14 +295,14 @@ Base.prototype.advice = function(newDirection) {
   this.emit('advice', advice);
 
   return this.propogatedAdvices;
-}
+};
 
 Base.prototype.notify = function(content) {
   this.emit('stratNotification', {
     content,
     date: new Date(),
   })
-}
+};
 
 Base.prototype.finish = function(done) {
   // Because the strategy might be async we need
@@ -321,6 +321,6 @@ Base.prototype.finish = function(done) {
   // we are not done, register cb
   // and call after we are..
   this.finishCb = done;
-}
+};
 
 module.exports = Base;

@@ -279,8 +279,9 @@ PaperTrader.prototype.processAdvice = function(advice) {
     }
   } else if(advice.recommendation === 'close') {
     cancelActiveStopTrigger();
-  } else if(advice.recommendation === 'close_then_long') {
-  } else if(advice.recommendation === 'close_then_short') {
+  } else if(advice.recommendation === 'close_then_long' || advice.recommendation === 'close_then_short') {
+    cancelActiveStopTrigger();
+    this.createTrigger(advice);
   } else {
     return log.warn(
       `[Papertrader] ignoring unknown advice recommendation: ${advice.recommendation}`

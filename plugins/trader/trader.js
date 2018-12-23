@@ -291,7 +291,9 @@ Trader.prototype.processAdvice = function(advice) {
     orderDirection = 'buy';
     if(this.exposedShort) {
       amount = Math.abs(this.portfolio.asset);
-      cb = () => this.processAdvice({recommendation: 'long'})
+      cb = () => !!advice.trigger ?
+        this.processAdvice({recommendation: 'long', trigger: advice.trigger}) :
+        this.processAdvice({recommendation: 'long'})
     } else {
       amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
     }
@@ -311,7 +313,9 @@ Trader.prototype.processAdvice = function(advice) {
     orderDirection = 'sell';
     if(this.exposedLong) {
       amount = Math.abs(this.portfolio.asset);
-      cb = () => this.processAdvice({recommendation: 'short'})
+      cb = () => !!advice.trigger ?
+        this.processAdvice({recommendation: 'short', trigger: advice.trigger}) :
+        this.processAdvice({recommendation: 'short'})
     } else {
       amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
     }
@@ -524,6 +528,6 @@ Trader.prototype.cancelOrder = function(id, advice, next) {
     });
     this.sync(next);
   });
-}
+};
 
 module.exports = Trader;

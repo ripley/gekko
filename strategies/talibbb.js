@@ -69,7 +69,7 @@ strategy.check = function (candle) {
           direction: 'long', // or short
           trigger: { // ignored when direction is not "long"
             type: 'trailingStop',
-            trailPercentage: 5
+            trailPercentage: 10
             // or: trailValue: 100
           }
         });
@@ -86,7 +86,7 @@ strategy.check = function (candle) {
           direction: 'short',
           trigger: {
             type: 'trailingStop',
-            trailPercentage: 5
+            trailPercentage: 10
             // or: trailValue: 100
           }
         });
