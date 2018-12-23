@@ -69,9 +69,8 @@ strategy.check = function (candle) {
           direction: 'long', // or short
           trigger: { // ignored when direction is not "long"
             type: 'trailingStop',
-            trailPercentage: 1
-            // or:
-            // trailValue: 100
+            trailPercentage: 5
+            // or: trailValue: 100
           }
         });
       } else {
@@ -83,7 +82,14 @@ strategy.check = function (candle) {
     if (zone === 'bottom') {
       if (this.trend.zone === 'low') {
         console.log('>>>>> SIGNALING ADVICE SHORT <<<<<<<<<<<<');
-        this.advice('short');
+        this.advice({
+          direction: 'short',
+          trigger: {
+            type: 'trailingStop',
+            trailPercentage: 5
+            // or: trailValue: 100
+          }
+        });
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
         this.advice('close_then_short');

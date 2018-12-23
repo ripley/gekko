@@ -256,20 +256,12 @@ Base.prototype.advice = function(newDirection) {
     }
 
     if(_.isObject(newDirection.trigger)) {
-      if(newDirection.direction !== 'long') {
-        log.warn(
-          'Strategy adviced a stop on not long, this is not supported.',
-          'As such the stop is ignored'
-        );
-      } else {
+      // the trigger is implemented in a trader
+      trigger = newDirection.trigger;
 
-        // the trigger is implemented in a trader
-        trigger = newDirection.trigger;
-
-        if(trigger.trailPercentage && !trigger.trailValue) {
-          trigger.trailValue = trigger.trailPercentage / 100 * this.candle.close;
-          log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:', trigger.trailValue);
-        }
+      if(trigger.trailPercentage && !trigger.trailValue) {
+        trigger.trailValue = trigger.trailPercentage / 100 * this.candle.close;
+        log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:', trigger.trailValue);
       }
     }
 

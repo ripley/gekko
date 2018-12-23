@@ -270,6 +270,7 @@ PaperTrader.prototype.processAdvice = function(advice) {
 
   if(advice.recommendation === 'short') {
     cancelActiveStopTrigger();
+    this.createTrigger(advice);
   } else if(advice.recommendation === 'long') {
     if(advice.trigger) {
       // clean up potential old stop trigger
@@ -290,6 +291,10 @@ PaperTrader.prototype.processAdvice = function(advice) {
 PaperTrader.prototype.createTrigger = function(advice) {
   const trigger = advice.trigger;
 
+  if(!trigger) {
+    return  log.warn(`[Papertrader] Trigger not defined ... Ignoring stop.`);
+  }
+
   if(trigger && trigger.type === 'trailingStop') {
 
     if(!trigger.trailValue) {
@@ -302,7 +307,7 @@ PaperTrader.prototype.createTrigger = function(advice) {
       id: triggerId,
       at: advice.date,
       type: 'trailingStop',
-      proprties: {
+      properties: {
         trail: trigger.trailValue,
         initialPrice: this.price,
       }

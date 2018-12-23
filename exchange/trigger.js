@@ -30,9 +30,9 @@ class Trigger {
 
     bindAll(this);
     this.trigger = new triggers[type]({
-      onTrigger: this.propogateTrigger,
+      onTrigger: this.propagateTrigger,
       ...props
-    })
+    });
 
     this.scheduleFetch();
   }
@@ -68,7 +68,7 @@ class Trigger {
     clearTimeout(this.timout);
   }
 
-  propogateTrigger(payload) {
+  propagateTrigger(payload) {
     if(!this.isLive) {
       return;
     }
