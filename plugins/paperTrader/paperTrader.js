@@ -164,7 +164,7 @@ PaperTrader.prototype.updatePosition = function(advice) {
     return null;
   }
 
-function emitEvents(r) {
+  function emitEvents(r) {
     if (!r) {
       return;
     }
@@ -253,7 +253,6 @@ PaperTrader.prototype.now = function() {
 };
 
 PaperTrader.prototype.processAdvice = function(advice) {
-  let action;
   let self = this;
 
   function cancelActiveStopTrigger() {
@@ -267,11 +266,11 @@ PaperTrader.prototype.processAdvice = function(advice) {
     }
   }
 
+  this.updatePosition(advice);
+
   if(advice.recommendation === 'short') {
-    action = 'sell';
     cancelActiveStopTrigger();
   } else if(advice.recommendation === 'long') {
-    action = 'buy';
     if(advice.trigger) {
       // clean up potential old stop trigger
       cancelActiveStopTrigger();
@@ -286,8 +285,6 @@ PaperTrader.prototype.processAdvice = function(advice) {
       `[Papertrader] ignoring unknown advice recommendation: ${advice.recommendation}`
     );
   }
-
-  this.updatePosition(advice);
 };
 
 PaperTrader.prototype.createTrigger = function(advice) {
@@ -317,7 +314,8 @@ PaperTrader.prototype.createTrigger = function(advice) {
       instance: new TrailingStop({
         initialPrice: this.price,
         trail: trigger.trailValue,
-        onTrigger: this.onStopTrigger
+        onTrigger: this.onStopTrigger,
+        exposure: this.portfolio.asset
       })
     }
   } else {
@@ -334,24 +332,7 @@ PaperTrader.prototype.onStopTrigger = function() {
     date
   });
 
-  const { cost, amount, effectivePrice } = this.updatePosition('short');
-
-  this.relayPortfolioChange();
-  this.relayPortfolioValueChange();
-
-  this.deferredEmit('tradeCompleted', {
-    id: this.tradeId,
-    adviceId: this.activeStopTrigger.adviceId,
-    action: 'sell',
-    cost,
-    amount,
-    price: this.price,
-    portfolio: this.portfolio,
-    balance: this.getBalance(),
-    date,
-    effectivePrice,
-    feePercent: this.rawFee
-  });
+  this.updatePosition({recommendation: 'close', date: date});
 
   delete this.activeStopTrigger;
 };

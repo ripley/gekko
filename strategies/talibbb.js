@@ -65,7 +65,15 @@ strategy.check = function (candle) {
     if (zone === 'top') {
       if (this.trend.zone === 'high') {
         console.log('>>>>> SIGNALING ADVICE LONG <<<<<<<<<<<<');
-        this.advice('long');
+        this.advice({
+          direction: 'long', // or short
+          trigger: { // ignored when direction is not "long"
+            type: 'trailingStop',
+            trailPercentage: 1
+            // or:
+            // trailValue: 100
+          }
+        });
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_LONG <<<<<<<<<<<<');
         this.advice('close_then_long');
