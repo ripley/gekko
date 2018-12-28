@@ -7,6 +7,15 @@ const strategy = {};
  *     +-------+---+-------+---+-------+---+-------+---+-------+---+
  *     | TRIMA | 5 | KAMA  | 6 | MAMA  | 7 | T3    | 8 |
  *     +-------+---+-------+---+-------+---+-------+---+
+ *
+ * Parameters for bb indicator.
+ *   let settings = {
+ *     optInTimePeriod: 100,
+ *     optInNbDevUp: 2,
+ *     optInNbDevDn: 2,
+ *     optInMAType: 0
+ *   };
+ *
  */
 strategy.init = function () {
   console.log('initiating');
@@ -15,15 +24,8 @@ strategy.init = function () {
     duration: 0,
     persisted: false
   };
-  let settings = {
-    optInTimePeriod: 100,
-    optInNbDevUp: 2,
-    optInNbDevDn: 2,
-    optInMAType: 0
-  };
 
   this.addTalibIndicator('bb', 'bbands', this.settings);
-  // this.addTalibIndicator('bb', 'bbands', settings);
 };
 
 strategy.log = function(candle) {
@@ -69,13 +71,20 @@ strategy.check = function (candle) {
           direction: 'long', // or short
           trigger: { // ignored when direction is not "long"
             type: 'trailingStop',
-            trailPercentage: 10
+            trailPercentage: 5
             // or: trailValue: 100
           }
         });
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_LONG <<<<<<<<<<<<');
-        this.advice('close_then_long');
+        this.advice({
+          direction: 'close_then_long', // or short
+          trigger: { // ignored when direction is not "long"
+            type: 'trailingStop',
+            trailPercentage: 5
+            // or: trailValue: 100
+          }
+        });
       }
     }
 
@@ -86,13 +95,20 @@ strategy.check = function (candle) {
           direction: 'short',
           trigger: {
             type: 'trailingStop',
-            trailPercentage: 10
+            trailPercentage: 5
             // or: trailValue: 100
           }
         });
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
-        this.advice('close_then_short');
+        this.advice({
+          direction: 'close_then_short',
+          trigger: {
+            type: 'trailingStop',
+            trailPercentage: 5
+            // or: trailValue: 100
+          }
+        });
       }
     }
 
