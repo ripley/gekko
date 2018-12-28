@@ -96,16 +96,23 @@ Trader.prototype.relayPortfolioValueChange = function() {
 };
 
 Trader.prototype.setPortfolio = function() {
+  const balances = this.broker.portfolio.balances;
+  let unallocated = 100;
+  balances.filter(balance => balance.hasOwnProperty('amount') && balance.amount !== 0).forEach(balance => {
+    unallocated -= this.brokerConfig.allocationRatio[balance.name];
+  });
   this.portfolio = {
     currency: _.find(
-      this.broker.portfolio.balances,
+      balances,
       b => b.name === this.brokerConfig.currency
     ),
     asset: _.find(
-      this.broker.portfolio.balances,
+      balances,
       b => b.name === this.brokerConfig.asset
-    ).amount
-  }
+    ).amount,
+    positionPercentage:
+      unallocated > 0 ? this.brokerConfig.allocationRatio[this.brokerConfig.asset] / unallocated : 0
+  };
 };
 
 // Trader.prototype.setBalance = function() {
@@ -206,6 +213,7 @@ Trader.prototype.processAdvice = function(advice) {
 
   let orderDirection = '';
   let cb = null;
+  const multiplier = 0.95 * this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
 
   if(direction === 'buy') {
 
