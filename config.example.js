@@ -18,7 +18,8 @@ config.watch = {
   // see https://gekko.wizb.it/docs/introduction/supported_exchanges.html
   exchange: 'bitfinex',
   currency: 'USD',
-  asset: 'EOS',
+  asset: 'BAB',
+  assets: ['ETH', 'EOS', 'BAB']
 
   // You can set your own tickrate (refresh rate).
   // If you don't set it, the defaults are 2 sec for
@@ -34,8 +35,17 @@ config.tradingAdvisor = {
   enabled: true,
   method: 'talibbb',
   // method: 'BollingerBands',
-  candleSize: 5, // unit: min
-  historySize: 100
+  // candleSize: 5, // unit: min
+  // historySize: 100
+  candleSize: 1, // unit: min
+  historySize: 1
+};
+
+config.talibbb = {
+  optInTimePeriod: 100,
+  optInNbDevUp: 2,
+  optInNbDevDn: 2,
+  optInMAType: 0
 };
 
 // MACD settings:
@@ -83,7 +93,7 @@ config.paperTrader = {
   feeUsing: 'maker',
   // how much slippage/spread should Gekko assume per trade?
   slippage: 0.05,
-  leverageRatio: 3
+  leverageRatio: 3 * 0.5
 };
 
 config.performanceAnalyzer = {
@@ -96,12 +106,17 @@ config.performanceAnalyzer = {
 // watched by `config.watch`.
 config.trader = {
   enabled: true,
-  key: '4lqGkNZf9zqyFu9GsDoki42k3ap3XbEFuBSUAXC1tvl',
-  secret: 'Emm77sSNxaVunNHxVH0HmVMwQgbvchE21caFvTw4X1c',
+  key: 'v6lqQ2JFk9tZcUEB3SJPzCm36IuLk2g7l40WVXYrFVR',
+  secret: 'AOIBqRAh7KCwuycT6zkFDRSWawTLM5xn45b4csqQUw5',
   username: '', // your username, only required for specific exchanges.
   passphrase: '', // GDAX, requires a passphrase.
   spreadCrossingRatio: 0.02, // How much percent we would accept when crossing the spread.
-  leverageRatio: 3
+  leverageRatio: 3 * 0.5,
+  allocationRatio: {
+    EOS: 25,
+    ETH: 25,
+    BAB: 50
+  }
 }
 
 config.eventLogger = {
