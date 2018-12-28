@@ -18,6 +18,7 @@ var Trader = function(config) {
   this.balance;
   this.price;
   this.asset = config.asset;
+  this.assets = config.assets;
   this.currency = config.currency;
   this.pair = this.asset + this.currency;
   this.bitfinex = new Bitfinex.RESTv1({apiKey: this.key, apiSecret: this.secret, transform: true});
@@ -110,19 +111,26 @@ Trader.prototype.getPortfolio = function(callback) {
   const processWalletBalance = (err, data) => {
     if (err) return callback(err);
 
-    // We are only interested in funds in the "exchange" wallet
+    // We are only interested in funds in the "trading" wallet for margin trading
     data = data.filter(c => c.type === 'trading');
 
-    const asset = _.find(data, c => c.currency.toUpperCase() === this.asset);
+    // Get assets
+    const assets = _.filter(data, c => this.assets.includes(c.currency.toUpperCase()));
+    let assetsData = [];
+    assets.forEach(data => {
+      let assetAmount;
+      if(_.isObject(data) && _.isNumber(+data.available) && !_.isNaN(+data.available))
+        assetAmount = +data.available;
+      else {
+        assetAmount = 0;
+      }
+
+      assetsData.push({ name: data.currency.toUpperCase(), amount: assetAmount});
+    });
+
+    // Get currency
     const currency = _.find(data, c => c.currency.toUpperCase() === this.currency);
-
-    let assetAmount, currencyFree, currencyUsed, currencyTotal;
-
-    if(_.isObject(asset) && _.isNumber(+asset.available) && !_.isNaN(+asset.available))
-      assetAmount = +asset.available;
-    else {
-      assetAmount = 0;
-    }
+    let currencyFree, currencyUsed, currencyTotal;
 
     if(_.isObject(currency) && _.isNumber(+currency.available) && !_.isNaN(+currency.available)) {
       currencyFree = +currency.available;
@@ -140,15 +148,19 @@ Trader.prototype.getPortfolio = function(callback) {
         return callback()
       }
 
-      operations.forEach((operation) => {
-        if(operation.symbol.toUpperCase().substr(0,3) === this.asset) {
-          assetAmount += parseFloat(operation.amount)
-        }
+      assetsData = assetsData.map(data => {
+        operations.forEach((operation) => {
+          if(operation.symbol.toUpperCase().substr(0,3) === data.name) {
+            data.amount += parseFloat(operation.amount)
+          }
+        });
+
+        return {name: data.name, amount: data.amount};
       });
 
       const portfolio = [
-        { name: this.asset, amount: assetAmount},
         { name: this.currency, used: currencyUsed, free: currencyFree, total: currencyTotal},
+        ...assetsData
       ];
 
       callback(undefined, portfolio);
@@ -159,7 +171,7 @@ Trader.prototype.getPortfolio = function(callback) {
 
   const fetch = cb => this.bitfinex.wallet_balances(this.handleResponse('getPortfolio', cb));
   retry(null, fetch, processWalletBalance);
-}
+};
 
 Trader.prototype.getTicker = function(callback) {
   const processResponse = (err, data) => {
