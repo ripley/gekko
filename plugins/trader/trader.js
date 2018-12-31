@@ -96,6 +96,7 @@ Trader.prototype.relayPortfolioValueChange = function() {
 };
 
 Trader.prototype.setPortfolio = function() {
+  log.error('ignoring advice in unknown direction');
   const balances = this.broker.portfolio.balances;
   let unallocated = 100;
   balances.filter(balance => balance.hasOwnProperty('amount') && balance.amount !== 0).forEach(balance => {
@@ -213,7 +214,8 @@ Trader.prototype.processAdvice = function(advice) {
 
   let orderDirection = '';
   let cb = null;
-  const multiplier = 0.95 * this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
+  //const multiplier = 0.95 * this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
+  const multiplier = this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
 
   if(direction === 'buy') {
 
@@ -231,7 +233,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     // amount = this.portfolio.currency / this.price * 0.95;
     orderDirection = 'buy';
-    amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
+    amount = this.portfolio.currency.free * multiplier / this.price;
 
     log.info(
       'Trader',
@@ -255,7 +257,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     // amount = this.portfolio.asset;
     orderDirection = 'sell';
-    amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
+    amount = this.portfolio.currency.free * multiplier / this.price;
 
     log.info(
       'Trader',
@@ -303,7 +305,7 @@ Trader.prototype.processAdvice = function(advice) {
         this.processAdvice({recommendation: 'long', trigger: advice.trigger}) :
         this.processAdvice({recommendation: 'long'})
     } else {
-      amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
+      amount = this.portfolio.currency.free * multiplier / this.price;
     }
   } else if(direction === 'close_then_sell') {
     if(this.exposedShort) {
@@ -325,7 +327,7 @@ Trader.prototype.processAdvice = function(advice) {
         this.processAdvice({recommendation: 'short', trigger: advice.trigger}) :
         this.processAdvice({recommendation: 'short'})
     } else {
-      amount = this.portfolio.currency.free / this.price * 0.95 * this.brokerConfig.leverageRatio;
+      amount = this.portfolio.currency.free * multiplier / this.price;
     }
   }
 
