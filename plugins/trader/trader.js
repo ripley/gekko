@@ -96,7 +96,6 @@ Trader.prototype.relayPortfolioValueChange = function() {
 };
 
 Trader.prototype.setPortfolio = function() {
-  log.error('ignoring advice in unknown direction');
   const balances = this.broker.portfolio.balances;
   let unallocated = 100;
   balances.filter(balance => balance.hasOwnProperty('amount') && balance.amount !== 0).forEach(balance => {
