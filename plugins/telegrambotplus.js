@@ -50,7 +50,7 @@ const Actor = function() {
 
   this.subscribers = [];
   this.states = [];
-  this.bot = new telegram(telegrambot.token, { polling: true });
+  this.bot = new telegram(telegrambotplus.token, { polling: true });
   this.bot.onText(/(.+)/, this.verifyQuestion);
 
   this.nokeyboard = {
@@ -344,7 +344,7 @@ Actor.prototype.emitAdminPWCheck = function(chatId, msg) {
     this.states = [];
   }
 
-   if (msg == telegrambot.adminPW) {
+   if (msg == telegrambotplus.adminPW) {
     this.bot.sendMessage(chatId, 'Password correct! You are in admin mode now.\n');
     user.state = 'WAIT_FOR_COMMAND';
     user.isAdmin = true;
