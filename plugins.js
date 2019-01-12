@@ -67,6 +67,17 @@ var plugins = [
     }]
   },
   {
+    name: 'Telegram bot plus',
+    description: 'Telegram plus module lets you communicate with Gekko on Telegram with more functions.',
+    slug: 'telegrambotplus',
+    async: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'node-telegram-bot-api',
+      version: '0.24.0'
+    }]
+  },
+  {
     name: 'Dingtalk bot',
     description: 'Dingtalk module lets you communicate with Gekko on Dingtalk.',
     slug: 'dingtalkbot',
