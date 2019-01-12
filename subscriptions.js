@@ -20,6 +20,11 @@ var subscriptions = [
     handler: 'processMarketStart'
   },
   {
+    emitter: 'telegrambotplus',
+    event: 'advice',
+    handler: 'processAdvice'
+  },
+  {
     emitter: 'tradingAdvisor',
     event: 'stratWarmupCompleted',
     handler: 'processStratWarmupCompleted'

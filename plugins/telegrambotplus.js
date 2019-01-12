@@ -25,7 +25,7 @@ const Actor = function() {
 
   this.pcurrency = 'Dont know yet :(';
   this.passet = 'Dont know yet :(';
-  this.pvalue = 'Dont know yet :(';
+  this.pvalue = undefined;
   this.pperformance = undefined;
   this.lasttradeprice = undefined;
 
@@ -45,6 +45,7 @@ const Actor = function() {
     '/price': 'emitAdminPrice',
     '/buy' : 'emitAdminBuy',
     '/sell': 'emitAdminSell',
+    '/close': 'emitAdminClose',
     '/exit': 'emitAdminExit',
   };
 
@@ -67,7 +68,7 @@ const Actor = function() {
   this.adminkeyboard = {
     "parse_mode" : "HTML",
     "reply_markup": {
-      "keyboard": [["/portfolio"], ["/price"], ["/buy", "/sell"], ["/exit"]]
+      "keyboard": [["/portfolio"], ["/price"], ["/buy", "/sell"], ["/close"], ["/exit"]]
     }
   }
 };
@@ -325,7 +326,7 @@ Actor.prototype.emitAdminPortfolio = function(chatId) {
     'Your current balance values at <b>' + config.watch.exchange + '</b>:\n',
     '<b>' + config.watch.currency + '</b>: ' + this.pcurrency + '\n',
     '<b>' + config.watch.asset + '</b>: ' + this.passet + '\n',
-    this.pvalue != undefined ? '<b>Value</b>: ' + this.pvalue.toFixed(2) + ' ' + config.watch.currency + '\n' : '',
+    this.pvalue != undefined ? '<b>Value</b>: ' + this.pvalue.toFixed(2) + ' ' + config.watch.currency + '\n' : 'Dont know yet :(',
     this.pperformance != undefined ? 'Change since last trade: <b>' + this.pperformance + '</b>\n' : '',
   ].join('');
 
@@ -386,12 +387,19 @@ Actor.prototype.emitAdminPrice = function(chatId) {
 Actor.prototype.emitAdminBuy = function(chatId) {
   this.emit('advice', { recommendation: 'long', date: moment() });
   this.bot.sendMessage(chatId, "OK, I am going to BUY new tokens now. Check your /portfolio soon.");
+  this.bot.sendMessage(chatId, "NOTICE, I'm not gonna set any stop order for you.");
 };
 
 
 Actor.prototype.emitAdminSell = function(chatId) {
   this.emit('advice', { recommendation: 'short', date: moment() });
   this.bot.sendMessage(chatId, "OK, I am going to SELL your tokens now. Check your /portfolio soon.");
+  this.bot.sendMessage(chatId, "NOTICE, I'm not gonna set any stop order for you.");
+};
+
+Actor.prototype.emitAdminClose = function(chatId) {
+  this.emit('advice', { recommendation: 'close', date: moment() });
+  this.bot.sendMessage(chatId, "OK, I am going to CLOSE your position now. Check your /portfolio soon.");
 };
 
 
@@ -429,6 +437,7 @@ Actor.prototype.emitAdminHelp = function(chatId) {
     '/price - get latest price from exchange\n',
     '/buy - buy crypto assets now\n',
     '/sell - sell your crypto assets now\n',
+    '/close - close your crypto assets position now\n',
     '/exit - exit admin mode\n'
   ].join('');
 
