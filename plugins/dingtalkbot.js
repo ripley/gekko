@@ -54,7 +54,7 @@ if(emitTrades) {
   Actor.prototype.processTradeInitiated = function (tradeInitiated) {
     let message = 'Trade initiated. ID: ' + tradeInitiated.id +
     '\nAction: ' + tradeInitiated.action + '\nPortfolio: ' +
-    JSON.stringify(tradeInitiated.portfolio) + '\nBalance: ' + tradeInitiated.balance;
+    JSON.stringify(tradeInitiated.portfolio, null, 2) + '\nBalance: ' + tradeInitiated.balance;
     this.sendMessage(message);
   };
   
@@ -81,7 +81,7 @@ if(emitTrades) {
     '\nPrice: ' + tradeCompleted.price +
     '\nAmount: ' + tradeCompleted.amount +
     '\nCost: ' + tradeCompleted.cost +
-    '\nPortfolio: ' + JSON.stringify(tradeCompleted.portfolio) +
+    '\nPortfolio: ' + JSON.stringify(tradeCompleted.portfolio, null, 2) +
     '\nBalance: ' + tradeCompleted.balance +
     '\nFee percent: ' + tradeCompleted.feePercent +
     '\nEffective price: ' + tradeCompleted.effectivePrice;
