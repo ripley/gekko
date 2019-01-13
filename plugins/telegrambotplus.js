@@ -324,7 +324,7 @@ Actor.prototype.emitAdminMode = function(chatId) {
 Actor.prototype.emitAdminPortfolio = function(chatId) {
   let message = [
     'Your current balance values at <b>' + config.watch.exchange + '</b>:\n',
-    '<b>' + config.watch.currency + '</b>: ' + this.pcurrency + '\n',
+    '<b>' + config.watch.currency + '</b>: ' + JSON.stringify(this.pcurrency, null, 2) + '\n',
     '<b>' + config.watch.asset + '</b>: ' + this.passet + '\n',
     this.pvalue != undefined ? '<b>Value</b>: ' + this.pvalue.toFixed(2) + ' ' + config.watch.currency + '\n' : 'Dont know yet :(',
     this.pperformance != undefined ? 'Change since last trade: <b>' + this.pperformance + '</b>\n' : '',
