@@ -326,8 +326,8 @@ Actor.prototype.emitAdminPortfolio = function(chatId) {
     'Your current balance values at <b>' + config.watch.exchange + '</b>:\n',
     '<b>' + config.watch.currency + '</b>: ' + JSON.stringify(this.pcurrency, null, 2) + '\n',
     '<b>' + config.watch.asset + '</b>: ' + this.passet + '\n',
-    '<b>Value</b>: ' + !!this.pvalue ? (this.pvalue.toFixed(2) + ' ' + config.watch.currency + '\n') : 'Don\'t know yet :(' + '\n',
-    'Change since last trade: <b>' + !!this.pperformance ? (this.pperformance + '</b>\n') : 'Don\'t know yet :('
+    '<b>Value</b>: ' + (!!this.pvalue ? this.pvalue.toFixed(2) + ' ' + config.watch.currency + '\n' : 'Don\'t know yet :(' + '\n'),
+    'Change since last trade: <b>' + (!!this.pperformance ? this.pperformance : 'Don\'t know yet :(') + '</b>\n'
   ].join('');
 
   message = message.substr(0, _.size(message) - 1) + '.';
