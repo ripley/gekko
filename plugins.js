@@ -55,23 +55,24 @@ var plugins = [
       version: '0.5.2'
     }]
   },
-  {
-    name: 'Telegram bot',
-    description: 'Telegram module lets you communicate with Gekko on Telegram.',
-    slug: 'telegrambot',
-    async: false,
-    modes: ['realtime'],
-    dependencies: [{
-      module: 'node-telegram-bot-api',
-      version: '0.24.0'
-    }]
-  },
+  //{
+  //  name: 'Telegram bot',
+  //  description: 'Telegram module lets you communicate with Gekko on Telegram.',
+  //  slug: 'telegrambot',
+  //  async: false,
+  //  modes: ['realtime'],
+  //  dependencies: [{
+  //    module: 'node-telegram-bot-api',
+  //    version: '0.24.0'
+  //  }]
+  //},
   {
     name: 'Telegram bot plus',
     description: 'Telegram plus module lets you communicate with Gekko on Telegram with more functions.',
     slug: 'telegrambotplus',
     async: false,
     modes: ['realtime'],
+    emits: ['advice'],
     dependencies: [{
       module: 'node-telegram-bot-api',
       version: '0.24.0'

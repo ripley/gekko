@@ -106,8 +106,13 @@ config.performanceAnalyzer = {
 // watched by `config.watch`.
 config.trader = {
   enabled: true,
-  key: 'v6lqQ2JFk9tZcUEB3SJPzCm36IuLk2g7l40WVXYrFVR',
-  secret: 'AOIBqRAh7KCwuycT6zkFDRSWawTLM5xn45b4csqQUw5',
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //   NOTE:
+  //     This file will be checked into github.
+  //     Never put a real key / secret pair here.
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  key: '****',
+  secret: '****',
   username: '', // your username, only required for specific exchanges.
   passphrase: '', // GDAX, requires a passphrase.
   spreadCrossingRatio: 0.02, // How much percent we would accept when crossing the spread.
@@ -207,18 +212,19 @@ config.ircbot = {
   botName: 'gekkobot'
 }
 
-config.telegrambot = {
-  enabled: false,
+config.telegrambotplus = {
+  enabled: true,
   // Receive notifications for trades and warnings/errors related to trading
   emitTrades: true,
-  token: '778942868:AAFFSDTHYgu5IPFQVahuaRMaScUJ35VICxA'
+  token: '****',
+  adminPW: 'ca$hc0w'
 };
 
 config.dingtalkbot = {
   enabled: true,
   // Receive notifications for trades and warnings/errors related to trading
   emitTrades: true,
-  token: '33d4ba8b5a5abc4a17612245b1f4bb36dc24f9b6310445ecedd524c2738f3e64'
+  token: '****'
 };
 
 config.twitter = {
