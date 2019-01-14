@@ -75,6 +75,8 @@ strategy.check = function (candle) {
             // or: trailValue: 100
           }
         });
+      } else if(this.trend.zone === 'none')  {
+        console.log('Privious zone not retrieved, will not advice.');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_LONG <<<<<<<<<<<<');
         this.advice({
@@ -99,6 +101,8 @@ strategy.check = function (candle) {
             // or: trailValue: 100
           }
         });
+      } else if(this.trend.zone === 'none')  {
+        console.log('Privious zone not retrieved, will not advice.');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
         this.advice({
