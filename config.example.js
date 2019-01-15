@@ -19,7 +19,7 @@ config.watch = {
   exchange: 'bitfinex',
   currency: 'USD',
   asset: 'BAB',
-  assets: ['ETH', 'EOS', 'BAB']
+  assets: ['ETH']
 
   // You can set your own tickrate (refresh rate).
   // If you don't set it, the defaults are 2 sec for
@@ -38,14 +38,18 @@ config.tradingAdvisor = {
   // candleSize: 5, // unit: min
   // historySize: 100
   candleSize: 1, // unit: min
-  historySize: 1
+  historySize: 3
 };
 
 config.talibbb = {
-  optInTimePeriod: 100,
+  optInTimePeriod: 3,
   optInNbDevUp: 2,
   optInNbDevDn: 2,
-  optInMAType: 0
+  optInMAType: 0,
+  widthFilter: {
+    halfWidth: true,
+    factor: 0.085
+  }
 };
 
 // MACD settings:
@@ -111,16 +115,14 @@ config.trader = {
   //     This file will be checked into github.
   //     Never put a real key / secret pair here.
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  key: '****',
-  secret: '****',
+  key: 'xxxx',
+  secret: 'xxxx',
   username: '', // your username, only required for specific exchanges.
   passphrase: '', // GDAX, requires a passphrase.
   spreadCrossingRatio: 0.02, // How much percent we would accept when crossing the spread.
   leverageRatio: 3 * 0.5,
   allocationRatio: {
-    EOS: 25,
-    ETH: 25,
-    BAB: 50
+    ETH: 100
   }
 }
 
@@ -216,7 +218,7 @@ config.telegrambotplus = {
   enabled: true,
   // Receive notifications for trades and warnings/errors related to trading
   emitTrades: true,
-  token: '****',
+  token: '782096048:AAHrcd1sLKoq9aKdSxTRaOQcT9W7UffQtQU',
   adminPW: 'ca$hc0w'
 };
 
