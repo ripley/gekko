@@ -245,6 +245,8 @@ Base.prototype.advice = function(newDirection) {
   }
 
   let trailingStopTrigger;
+  let fixedStopTrigger;
+
   if(_.isObject(newDirection)) {
     if(!_.isString(newDirection.direction)) {
       log.error('Strategy emitted unparsable advice:', newDirection);
@@ -255,14 +257,27 @@ Base.prototype.advice = function(newDirection) {
       return;
     }
 
-    if(_.isObject(newDirection.trigger) && newDirection.trigger.trailingStop) {
-      // the trigger is implemented in a trader
-      trailingStopTrigger = newDirection.trigger.trailingStop;
+    if(_.isObject(newDirection.trigger)) {
+      if (newDirection.trigger.trailingStop) {
+        // the trigger is implemented in a trader
+        trailingStopTrigger = newDirection.trigger.trailingStop;
 
-      if(trailingStopTrigger.trailPercentage && !trailingStopTrigger.trailValue) {
-        trailingStopTrigger.trailValue = trailingStopTrigger.trailPercentage / 100 * this.candle.close;
-        log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:',
-          trailingStopTrigger.trailValue);
+        if(trailingStopTrigger.trailPercentage && !trailingStopTrigger.trailValue) {
+          trailingStopTrigger.trailValue = trailingStopTrigger.trailPercentage / 100 * this.candle.close;
+          log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:',
+            trailingStopTrigger.trailValue);
+        }
+      }
+
+      if (newDirection.trigger.fixedStop) {
+        // the trigger is implemented in a trader
+        fixedStopTrigger = newDirection.trigger.fixedStop;
+
+        if(!!fixedStopTrigger.stopPercentage && !fixedStopTrigger.stopValue) {
+          fixedStopTrigger.stopValue = fixedStopTrigger.stopPercentage / 100 * this.candle.close;
+          log.info('[StratRunner] Fixed stop value specified as percentage, setting to:',
+            fixedStopTrigger.stopValue);
+        }
       }
     }
 
@@ -287,8 +302,18 @@ Base.prototype.advice = function(newDirection) {
     trigger: {}
   };
 
-  if(trailingStopTrigger) {
+  if(!!trailingStopTrigger) {
     advice.trigger.trailingStopTrigger = trailingStopTrigger;
+    this._pendingTriggerAdvice = 'advice-' + this.propogatedAdvices;
+  }
+
+  if(!!fixedStopTrigger) {
+    advice.trigger.fixedStopTrigger = fixedStopTrigger;
+  }
+
+  // TODO: Did not get what is _pendingTriggerAdvice used for, looks like it's of no use for now.
+  // Revisit this if necessary.
+  if(!!trailingStopTrigger || !!fixedStopTrigger) {
     this._pendingTriggerAdvice = 'advice-' + this.propogatedAdvices;
   } else {
     this._pendingTriggerAdvice = null;

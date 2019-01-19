@@ -164,13 +164,17 @@ Trader.prototype.processCandle = function(candle, done) {
 };
 
 // Recover stoploss triggers
-Trader.prototype.recoverTrigger = function(advice) {
+Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
+  if (!this.exposure){
+    return;
+  }
+
   if(
-    // !!this.exposure &&
     !!advice.trigger &&
     !!advice.trigger.trailingStopTrigger
   ) {
     const trigger = advice.trigger.trailingStopTrigger;
+    const activeInitialPrice = !!initialPrice ? initialPrice : trigger.initialPrice;
     const triggerId = 'trigger-' + (++this.propogatedTriggers);
 
     this.deferredEmit('triggerCreated', {
@@ -179,13 +183,13 @@ Trader.prototype.recoverTrigger = function(advice) {
       type: 'trailingStop',
       properties: {
         trail: trigger.trailValue,
-        initialPrice: trigger.initialPrice,
+        initialPrice: activeInitialPrice,
         exposure: this.exposure
       }
     });
 
     log.info(`Recovering trailingStop trigger "${triggerId}"! Properties:`);
-    log.info(`\tInitial price: ${trigger.initialPrice}`);
+    log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tTrail of: ${trigger.trailValue}`);
 
     this.activeStopTrigger.trailingStopTriiger = {
@@ -196,7 +200,45 @@ Trader.prototype.recoverTrigger = function(advice) {
         onTrigger: this.onTrailingStopTrigger,
         props: {
           trail: trigger.trailValue,
-          initialPrice: trigger.initialPrice,
+          initialPrice: activeInitialPrice,
+          exposure: this.exposure
+        }
+      })
+    };
+  }
+
+  if(
+    !!advice.trigger &&
+    !!advice.trigger.fixedStopTrigger
+  ) {
+    const trigger = advice.trigger.fixedStopTrigger;
+    const activeInitialPrice = !!initialPrice ? initialPrice : trigger.initialPrice;
+    const triggerId = 'trigger-' + (++this.propogatedTriggers);
+
+    this.deferredEmit('triggerCreated', {
+      id: triggerId,
+      at: advice.date,
+      type: 'fixedStop',
+      properties: {
+        stopValue: trigger.stopValue,
+        initialPrice: activeInitialPrice,
+        exposure: this.exposure
+      }
+    });
+
+    log.info(`Recovering fixedStop trigger "${triggerId}"! Properties:`);
+    log.info(`\tInitial price: ${activeInitialPrice}`);
+    log.info(`\tStop value is: ${trigger.stopValue}`);
+
+    this.activeStopTrigger.trailingStopTriiger = {
+      id: triggerId,
+      adviceId: advice.id,
+      instance: this.broker.createTrigger({
+        type: 'trailingStop',
+        onTrigger: this.onTrailingStopTrigger,
+        props: {
+          stopValue: trigger.stopValue,
+          initialPrice: activeInitialPrice,
           exposure: this.exposure
         }
       })
@@ -208,7 +250,7 @@ Trader.prototype.processAdvice = function(advice) {
   let direction;
 
   if (advice.recommendation === 'recover_trigger') {
-    this.recoverTrigger(advice);
+    this.recoverOrCreateTriggers(advice);
     return;
   }
 
@@ -498,43 +540,8 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
           effectivePrice
         });
 
-        if(
-          !!this.exposure &&
-          !!advice.trigger &&
-          !!advice.trigger.trailingStop
-        ) {
-          const trigger = advice.trigger.trailingStopTrigger;
-          const triggerId = 'trigger-' + (++this.propogatedTriggers);
+        this.recoverOrCreateTriggers(advice, summary.price);
 
-          this.deferredEmit('triggerCreated', {
-            id: triggerId,
-            at: advice.date,
-            type: 'trailingStop',
-            properties: {
-              trail: trigger.trailValue,
-              initialPrice: summary.price,
-              exposure: this.exposure
-            }
-          });
-
-          log.info(`Creating trailingStop trigger "${triggerId}"! Properties:`);
-          log.info(`\tInitial price: ${summary.price}`);
-          log.info(`\tTrail of: ${trigger.trailValue}`);
-
-          this.activeStopTrigger.trailingStopTrigger  = {
-            id: triggerId,
-            adviceId: advice.id,
-            instance: this.broker.createTrigger({
-              type: 'trailingStop',
-              onTrigger: this.onTrailingStopTrigger,
-              props: {
-                trail: trigger.trailValue,
-                initialPrice: summary.price,
-                exposure: this.exposure
-              }
-            })
-          };
-        }
         log.info(`Portfolio after last trade ${this.portfolio}`);
         // Callback here is the following advice process for close_then_sell and close_then_buy.
         if (!!cb) {
@@ -545,23 +552,46 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
   });
 };
 
+Trader.prototype.onFixedStopTrigger = function(initialPrice, stopPrice) {
+  log.info(`TrailingStop trigger "${this.activeStopTrigger.trailingStopTrigger.id}" fired! 
+            Initial price is ${initialPrice}, Triggered stop price is ${stopPrice}`);
+
+  if (!!this.activeStopTrigger && !!this.activeStopTrigger.fixedStopTrigger) {
+    this.deferredEmit('triggerFired', {
+      id: this.activeStopTrigger.fixedStopTrigger.id,
+      date: moment()
+    });
+
+    const adviceMock = {
+      recommendation: 'close',
+      id: this.activeStopTrigger.fixedStopTrigger.adviceId
+    };
+
+    delete this.activeStopTrigger.fixedStopTrigger;
+
+    this.processAdvice(adviceMock);
+  }
+};
+
 Trader.prototype.onTrailingStopTrigger = function(price) {
-  log.info(`TrailingStop trigger "${this.activeStopTrigger.trailingStopTrigger.id}" fired! Observed price was ${price}`);
+  log.info(`TrailingStop trigger "${this.activeStopTrigger.trailingStopTrigger.id}" fired! 
+            Observed price was ${price}`);
 
-  this.deferredEmit('triggerFired', {
-    id: this.activeStopTrigger.trailingStopTrigger.id,
-    date: moment()
-  });
+  if (!!this.activeStopTrigger && !!this.activeStopTrigger.trailingStopTrigger) {
+    this.deferredEmit('triggerFired', {
+      id: this.activeStopTrigger.trailingStopTrigger.id,
+      date: moment()
+    });
 
-  const adviceMock = {
-    //recommendation: this.exposure > 0 ? 'short' : 'long',
-    recommendation: 'close',
-    id: this.activeStopTrigger.trailingStopTrigger.adviceId
-  };
+    const adviceMock = {
+      recommendation: 'close',
+      id: this.activeStopTrigger.trailingStopTrigger.adviceId
+    };
 
-  delete this.activeStopTrigger.trailingStopTrigger;
+    delete this.activeStopTrigger.trailingStopTrigger;
 
-  this.processAdvice(adviceMock);
+    this.processAdvice(adviceMock);
+  }
 };
 
 Trader.prototype.cancelOrder = function(id, advice, next) {
