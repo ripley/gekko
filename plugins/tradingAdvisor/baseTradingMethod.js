@@ -244,7 +244,7 @@ Base.prototype.advice = function(newDirection) {
     return;
   }
 
-  let trigger;
+  let trailingStopTrigger;
   if(_.isObject(newDirection)) {
     if(!_.isString(newDirection.direction)) {
       log.error('Strategy emitted unparsable advice:', newDirection);
@@ -255,13 +255,14 @@ Base.prototype.advice = function(newDirection) {
       return;
     }
 
-    if(_.isObject(newDirection.trigger)) {
+    if(_.isObject(newDirection.trigger) && newDirection.trigger.trailingStop) {
       // the trigger is implemented in a trader
-      trigger = newDirection.trigger;
+      trailingStopTrigger = newDirection.trigger.trailingStop;
 
-      if(trigger.trailPercentage && !trigger.trailValue) {
-        trigger.trailValue = trigger.trailPercentage / 100 * this.candle.close;
-        log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:', trigger.trailValue);
+      if(trailingStopTrigger.trailPercentage && !trailingStopTrigger.trailValue) {
+        trailingStopTrigger.trailValue = trailingStopTrigger.trailPercentage / 100 * this.candle.close;
+        log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:',
+          trailingStopTrigger.trailValue);
       }
     }
 
@@ -282,11 +283,12 @@ Base.prototype.advice = function(newDirection) {
 
   const advice = {
     id: 'advice-' + this.propogatedAdvices,
-    recommendation: newDirection
+    recommendation: newDirection,
+    trigger: {}
   };
 
-  if(trigger) {
-    advice.trigger = trigger;
+  if(trailingStopTrigger) {
+    advice.trigger.trailingStopTrigger = trailingStopTrigger;
     this._pendingTriggerAdvice = 'advice-' + this.propogatedAdvices;
   } else {
     this._pendingTriggerAdvice = null;
