@@ -43,6 +43,10 @@ function recoverOrder(self, candle) {
         trailingStop: {
           trailPercentage: 5, // or: trailValue: 100
           initialPrice: candle.close
+        },
+        fixedStop: {
+          stopPercentage: 4,
+          initialPrice: candle.close
         }
       }
     });
