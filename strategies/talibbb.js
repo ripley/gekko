@@ -68,9 +68,9 @@ strategy.check = function (candle) {
   }
 
   // Chain other filters here.
-  function filteredAdvice(order) {
+  function filteredAdvice(self,order) {
     if(filterResult) {
-      this.advice(order);
+      self.advice(order);
       return;
     }
     console.log(`Order ${order} rejected by filter !`);
@@ -93,7 +93,7 @@ strategy.check = function (candle) {
     if (zone === 'top') {
       if (this.trend.zone === 'high') {
         console.log('>>>>> SIGNALING ADVICE LONG <<<<<<<<<<<<');
-        filteredAdvice({
+        filteredAdvice(this, {
           direction: 'long', // or short
           trigger: { // ignored when direction is not "long"
             type: 'trailingStop',
@@ -123,7 +123,7 @@ strategy.check = function (candle) {
     if (zone === 'bottom') {
       if (this.trend.zone === 'low') {
         console.log('>>>>> SIGNALING ADVICE SHORT <<<<<<<<<<<<');
-        filteredAdvice({
+        filteredAdvice(this, {
           direction: 'short',
           trigger: {
             type: 'trailingStop',

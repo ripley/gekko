@@ -18,7 +18,7 @@ config.watch = {
   // see https://gekko.wizb.it/docs/introduction/supported_exchanges.html
   exchange: 'bitfinex',
   currency: 'USD',
-  asset: 'BAB',
+  asset: 'ETH',
   assets: ['ETH']
 
   // You can set your own tickrate (refresh rate).
