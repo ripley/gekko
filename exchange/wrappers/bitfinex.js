@@ -151,11 +151,13 @@ Trader.prototype.getPortfolio = function(callback) {
       assetsData = assetsData.map(data => {
         operations.forEach((operation) => {
           if(operation.symbol.toUpperCase().substr(0,3) === data.name) {
-            data.amount += parseFloat(operation.amount)
+            data.amount += parseFloat(operation.amount);
+            data.base = operation.base;
+            data.timestamp = operation.timestamp;
           }
         });
 
-        return {name: data.name, amount: data.amount};
+        return {name: data.name, amount: data.amount, base: data.base, timestamp: data.timestamp};
       });
 
       const portfolio = [

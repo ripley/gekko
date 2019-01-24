@@ -87,6 +87,8 @@ Trader.prototype.sync = function(next) {
 Trader.prototype.relayPortfolioChange = function() {
   this.deferredEmit('portfolioChange', {
     asset: this.portfolio.asset,
+    base: this.portfolio.base,
+    timestamp: this.portfolio.timestamp,
     currency: this.portfolio.currency
   });
 };
@@ -112,6 +114,14 @@ Trader.prototype.setPortfolio = function() {
       balances,
       b => b.name === this.brokerConfig.asset
     ).amount,
+    base: _.find(
+      balances,
+      b => b.name === this.brokerConfig.asset
+    ).base,
+    timestamp: _.find(
+      balances,
+      b => b.name === this.brokerConfig.asset
+    ).timestamp,
     positionPercentage:
       unallocated > 0 ? this.brokerConfig.allocationRatio[this.brokerConfig.asset] / unallocated : 0
   };
@@ -149,6 +159,8 @@ Trader.prototype.processCandle = function(candle, done) {
     this.sendInitialPortfolio = true;
     this.deferredEmit('portfolioChange', {
       asset: this.portfolio.asset,
+      base: this.portfolio.base,
+      timestamp: this.portfolio.timestamp,
       currency: this.portfolio.currency
     });
   }
@@ -166,6 +178,7 @@ Trader.prototype.processCandle = function(candle, done) {
 // Recover stoploss triggers
 Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
   if (!this.exposure){
+    log.info(`Not exposed, won't recovery any trigger.`);
     return;
   }
 
@@ -389,6 +402,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     orderDirection = 'buy';
     if(this.exposedShort) {
+      cleanupStopTrigger();
       amount = Math.abs(this.portfolio.asset);
       cb = () => !!advice.trigger ?
         this.processAdvice({recommendation: 'long', trigger: advice.trigger}) :
@@ -411,6 +425,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     orderDirection = 'sell';
     if(this.exposedLong) {
+      cleanupStopTrigger();
       amount = Math.abs(this.portfolio.asset);
       cb = () => !!advice.trigger ?
         this.processAdvice({recommendation: 'short', trigger: advice.trigger}) :

@@ -20,7 +20,8 @@ const AsyncIndicatorRunner = function() {
     high: [],
     low: [],
     close: [],
-    volume: []
+    volume: [],
+    start: []
   };
 
   this.candlePropsCacheSize = 2000;
@@ -43,6 +44,7 @@ AsyncIndicatorRunner.prototype.processCandle = function(candle, next) {
   this.candleProps.low.push(candle.low);
   this.candleProps.close.push(candle.close);
   this.candleProps.volume.push(candle.volume);
+  this.candleProps.start.push(candle.start.valueOf());
 
   if(this.age > this.candlePropsCacheSize) {
     this.candleProps.open.shift();
@@ -50,6 +52,7 @@ AsyncIndicatorRunner.prototype.processCandle = function(candle, next) {
     this.candleProps.low.shift();
     this.candleProps.close.shift();
     this.candleProps.volume.shift();
+    this.candleProps.start.shift();
   }
 
   this.calculateIndicators(next);

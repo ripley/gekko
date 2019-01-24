@@ -118,5 +118,8 @@ Actor.prototype.relayAdvice = function(advice) {
   this.deferredEmit('advice', advice);
 }
 
+Actor.prototype.processPortfolioChange = function(portfolio) {
+  this.strategy.onPortfolioChange(portfolio);
+};
 
 module.exports = Actor;

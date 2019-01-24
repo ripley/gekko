@@ -263,7 +263,8 @@ Base.prototype.advice = function(newDirection) {
         trailingStopTrigger = newDirection.trigger.trailingStop;
 
         if(trailingStopTrigger.trailPercentage && !trailingStopTrigger.trailValue) {
-          trailingStopTrigger.trailValue = trailingStopTrigger.trailPercentage / 100 * this.candle.close;
+          const initialPrice = !!trailingStopTrigger.initialPrice ? trailingStopTrigger.initialPrice : this.candle.close;
+          trailingStopTrigger.trailValue = trailingStopTrigger.trailPercentage / 100 * initialPrice;
           log.info('[StratRunner] Trailing stop trail value specified as percentage, setting to:',
             trailingStopTrigger.trailValue);
         }
@@ -274,7 +275,8 @@ Base.prototype.advice = function(newDirection) {
         fixedStopTrigger = newDirection.trigger.fixedStop;
 
         if(!!fixedStopTrigger.stopPercentage && !fixedStopTrigger.stopValue) {
-          fixedStopTrigger.stopValue = fixedStopTrigger.stopPercentage / 100 * this.candle.close;
+          const initialPrice = !!fixedStopTrigger.initialPrice ? fixedStopTrigger.initialPrice : this.candle.close;
+          fixedStopTrigger.stopValue = fixedStopTrigger.stopPercentage / 100 * initialPrice;
           log.info('[StratRunner] Fixed stop value specified as percentage, setting to:',
             fixedStopTrigger.stopValue);
         }
