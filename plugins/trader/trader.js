@@ -247,7 +247,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
       id: triggerId,
       adviceId: advice.id,
       instance: this.broker.createTrigger({
-        type: 'trailingStop',
+        type: 'fixedStop',
         onTrigger: this.onTrailingStopTrigger,
         props: {
           stopValue: trigger.stopValue,
