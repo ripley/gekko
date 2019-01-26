@@ -243,7 +243,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
     log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tStop value is: ${trigger.stopValue}`);
 
-    this.activeStopTrigger.trailingStopTriiger = {
+    this.activeStopTrigger.fixedStopTriiger = {
       id: triggerId,
       adviceId: advice.id,
       instance: this.broker.createTrigger({
@@ -257,6 +257,21 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
       })
     };
   }
+};
+
+Trader.prototype.cleanupStopTrigger = function(date){
+  // clean up potential old stop trigger
+  Object.keys(this.activeStopTrigger).forEach(t => {
+    log.info(`Cleaning up stop trigger ${t}`);
+    this.deferredEmit('triggerAborted', {
+      id: this.activeStopTrigger[t].id,
+      date: date
+    });
+
+    this.activeStopTrigger[t].instance.cancel();
+
+    delete this.activeStopTrigger[t]
+  });
 };
 
 Trader.prototype.processAdvice = function(advice) {
@@ -299,20 +314,6 @@ Trader.prototype.processAdvice = function(advice) {
   }
 
   let amount;
-
-  function cleanupStopTrigger() {
-    // clean up potential old stop trigger
-    Object.keys(this.activeStopTrigger).forEach(t => {
-      this.deferredEmit('triggerAborted', {
-        id: this.activeStopTrigger[t].id,
-        date: advice.date
-      });
-
-      this.activeStopTrigger[t].instance.cancel();
-
-      delete this.activeStopTrigger[t]
-    });
-  }
 
   let orderDirection = '';
   let cb = null;
@@ -385,7 +386,7 @@ Trader.prototype.processAdvice = function(advice) {
       orderDirection = 'buy';
     }
 
-    cleanupStopTrigger();
+    this.cleanupStopTrigger(advice.date);
     amount = Math.abs(this.portfolio.asset);
   } else if(direction === 'close_then_buy') {
     if(this.exposedLong) {
@@ -402,7 +403,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     orderDirection = 'buy';
     if(this.exposedShort) {
-      cleanupStopTrigger();
+      this.cleanupStopTrigger(advice.date);
       amount = Math.abs(this.portfolio.asset);
       cb = () => !!advice.trigger ?
         this.processAdvice({recommendation: 'long', trigger: advice.trigger}) :
@@ -425,7 +426,7 @@ Trader.prototype.processAdvice = function(advice) {
 
     orderDirection = 'sell';
     if(this.exposedLong) {
-      cleanupStopTrigger();
+      this.cleanupStopTrigger(advice.date);
       amount = Math.abs(this.portfolio.asset);
       cb = () => !!advice.trigger ?
         this.processAdvice({recommendation: 'short', trigger: advice.trigger}) :
