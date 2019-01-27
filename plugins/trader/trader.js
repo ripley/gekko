@@ -101,6 +101,12 @@ Trader.prototype.relayPortfolioValueChange = function() {
 };
 
 Trader.prototype.dumpPositionSettingAndPortfolioInfo = function() {
+  const balances = this.broker.portfolio.balances;
+  let unallocated = 100;
+  balances.filter(balance => balance.hasOwnProperty('amount') && balance.amount !== 0).forEach(balance => {
+    unallocated -= this.brokerConfig.allocationRatio[balance.name];
+  });
+
   log.info(`Calculating positionPercentage with unallocated: ${unallocated}, 
             allocation ratio: ${this.brokerConfig.allocationRatio[this.brokerConfig.asset]},
             for asset: ${this.brokerConfig.asset}`);
