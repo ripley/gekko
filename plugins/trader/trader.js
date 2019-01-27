@@ -70,6 +70,7 @@ Trader.prototype.sync = function(next) {
 
     this.setPortfolio();
     this.setBalance();
+    log.info(`Current broker portfolio: ${JSON.stringify(this.broker.portfolio, null, 2)}.`);
 
     if(this.sendInitialPortfolio && !_.isEqual(oldPortfolio, this.portfolio)) {
       this.relayPortfolioChange();
@@ -105,6 +106,12 @@ Trader.prototype.setPortfolio = function() {
   balances.filter(balance => balance.hasOwnProperty('amount') && balance.amount !== 0).forEach(balance => {
     unallocated -= this.brokerConfig.allocationRatio[balance.name];
   });
+  log.info(`Calculating positionPercentage with unallocated: ${unallocated}, 
+            allocation ratio: ${this.brokerConfig.allocationRatio[this.brokerConfig.asset]},
+            for asset: ${this.brokerConfig.asset}`);
+  const positionPercentage =
+    unallocated > 0 ? this.brokerConfig.allocationRatio[this.brokerConfig.asset] / unallocated : 0;
+  log.info(`Calculated positionPercentage: ${positionPercentage}`);
   this.portfolio = {
     currency: _.find(
       balances,
@@ -122,8 +129,7 @@ Trader.prototype.setPortfolio = function() {
       balances,
       b => b.name === this.brokerConfig.asset
     ).timestamp,
-    positionPercentage:
-      unallocated > 0 ? this.brokerConfig.allocationRatio[this.brokerConfig.asset] / unallocated : 0
+    positionPercentage: positionPercentage
   };
 };
 
@@ -319,6 +325,7 @@ Trader.prototype.processAdvice = function(advice) {
   let cb = null;
   //const multiplier = 0.95 * this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
   const multiplier = this.brokerConfig.leverageRatio * this.portfolio.positionPercentage;
+  log.info(`Calculated multiplier: ${multiplier}`);
 
   if(direction === 'buy') {
 
