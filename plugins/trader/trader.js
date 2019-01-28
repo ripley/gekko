@@ -225,7 +225,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
     log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tTrail of: ${trigger.trailValue}`);
 
-    this.activeStopTrigger.trailingStopTriiger = {
+    this.activeStopTrigger.trailingStopTrigger = {
       id: triggerId,
       adviceId: advice.id,
       instance: this.broker.createTrigger({
