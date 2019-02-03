@@ -44,7 +44,7 @@ const Trader = function(next) {
     log.info('\t', 'Exposed:');
     log.info('\t\t',
       this.exposedLong || this.exposedShort ? 'yes' : 'no',
-      `(${(this.exposure * 100).toFixed(2)}%)`
+      `(${(this.exposedRatio * 100).toFixed(2)}%)`
     );
     next();
   });
@@ -167,6 +167,7 @@ Trader.prototype.setBalance = function() {
 
   this.exposedLong = this.exposure > 0 && exposedRatio > 0.1;
   this.exposedShort = this.exposure < 0 && exposedRatio > 0.1;
+  this.exposedRatio = exposedRatio;
 };
 
 Trader.prototype.processCandle = function(candle, done) {
@@ -198,7 +199,7 @@ Trader.prototype.processCandle = function(candle, done) {
 // Recover stoploss triggers
 Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
   if (!this.exposure){
-    log.info(`Not exposed, won't recovery any trigger.`);
+    log.info(`Not exposed, won't recover any trigger.`);
     return;
   }
 
@@ -268,7 +269,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
       adviceId: advice.id,
       instance: this.broker.createTrigger({
         type: 'fixedStop',
-        onTrigger: this.onTrailingStopTrigger,
+        onTrigger: this.onFixedStopTrigger,
         props: {
           stopValue: trigger.stopValue,
           initialPrice: activeInitialPrice,
@@ -590,7 +591,7 @@ Trader.prototype.createOrder = function(side, amount, advice, id, cb) {
 };
 
 Trader.prototype.onFixedStopTrigger = function(initialPrice, stopPrice) {
-  log.info(`TrailingStop trigger "${this.activeStopTrigger.trailingStopTrigger.id}" fired! 
+  log.info(`FixedStop trigger "${this.activeStopTrigger.fixedStopTrigger.id}" fired! 
             Initial price is ${initialPrice}, Triggered stop price is ${stopPrice}`);
 
   if (!!this.activeStopTrigger && !!this.activeStopTrigger.fixedStopTrigger) {
