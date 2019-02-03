@@ -54,13 +54,13 @@ function checkLastNOhlcvForCloseSignal(self, price) {
     const ohlcvMinMax = [Math.min(...prices), Math.max(...prices)];
     if (!!self.portfolio) {
       if (self.portfolio.asset > 0 && price < ohlcvMinMax[1]) {
-        const priceChangeInNOhlcv = ((ohlcvMinMax[1] - price) / ohlcvMinMax[1]) / 100;
+        const priceChangeInNOhlcv = (ohlcvMinMax[1] - price) / ohlcvMinMax[1];
         console.log(`LONG_POS: Price change in ${self.backOhlcvNumber} candles is ${priceChangeInNOhlcv}`);
         return priceChangeInNOhlcv > self.ohlcvChangePercentForClose;
       }
 
       if (self.portfolio.asset < 0 && price > ohlcvMinMax[0]) {
-        const priceChangeInNOhlcv = ((price -  ohlcvMinMax[0]) / ohlcvMinMax[0]) / 100;
+        const priceChangeInNOhlcv = (price -  ohlcvMinMax[0]) / ohlcvMinMax[0];
         console.log(`SHORT_POS: Price change in ${self.backOhlcvNumber} candles is ${priceChangeInNOhlcv}`);
         return priceChangeInNOhlcv > this.ohlcvChangePercentForClose;
       }
