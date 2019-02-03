@@ -27,6 +27,10 @@ strategy.init = function () {
 
   this.triggerRecovered = false;
   this.initialPortfolio = undefined;
+  this.portfolio = undefined;
+
+  this.backOhlcvNumber = 3;
+  this.ohlcvChangePercentForClose = 0.05;
 
   this.addTalibIndicator('bb', 'bbands', this.settings);
   console.log(`Strategy talibbb initiated with settings ${JSON.stringify(this.settings, null, 2)}.`);
@@ -38,7 +42,33 @@ strategy.log = function(candle) {
 
 strategy.onPortfolioChange = function(portfolio) {
   this.initialPortfolio = this.initialPortfolio || portfolio;
+  this.portfolio = portfolio;
 };
+
+function checkLastNOhlcvForCloseSignal(self, price) {
+  if (!!self.asyncIndicatorRunner
+    && !!self.asyncIndicatorRunner.candleProps
+    && !!self.asyncIndicatorRunner.candleProps.close) {
+    const sliceArg = -1 * self.backOhlcvNumber;
+    const prices = self.asyncIndicatorRunner.candleProps.close.slice(sliceArg);
+    const ohlcvMinMax = [Math.min(...prices), Math.max(...prices)];
+    if (!!self.portfolio) {
+      if (self.portfolio.asset > 0 && price < ohlcvMinMax[1]) {
+        const priceChangeInNOhlcv = ((ohlcvMinMax[1] - price) / ohlcvMinMax[1]) / 100;
+        console.log(`LONG_POS: Price change in ${self.backOhlcvNumber} candles is ${priceChangeInNOhlcv}`);
+        return priceChangeInNOhlcv > self.ohlcvChangePercentForClose;
+      }
+
+      if (self.portfolio.asset < 0 && price > ohlcvMinMax[0]) {
+        const priceChangeInNOhlcv = ((price -  ohlcvMinMax[0]) / ohlcvMinMax[0]) / 100;
+        console.log(`SHORT_POS: Price change in ${self.backOhlcvNumber} candles is ${priceChangeInNOhlcv}`);
+        return priceChangeInNOhlcv > this.ohlcvChangePercentForClose;
+      }
+    }
+  }
+
+  return false;
+}
 
 function recoverOrder(self) {
   if (self.triggerRecovered) {
@@ -84,6 +114,12 @@ function recoverOrder(self) {
 strategy.check = function (candle) {
   if (!this.triggerRecovered) {
     recoverOrder(this);
+  }
+
+  if (checkLastNOhlcvForCloseSignal(this, candle.close)) {
+    console.log(`Triggering close by high volatility.`);
+    this.advice('close');
+    return;
   }
 
   const BB = this.talibIndicators.bb.result;
