@@ -263,7 +263,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
     log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tStop value is: ${trigger.stopValue}`);
 
-    this.activeStopTrigger.fixedStopTriiger = {
+    this.activeStopTrigger.fixedStopTrigger= {
       id: triggerId,
       adviceId: advice.id,
       instance: this.broker.createTrigger({
