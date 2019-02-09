@@ -193,6 +193,14 @@ Trader.prototype.processCandle = function(candle, done) {
     this.relayPortfolioValueChange();
   }
 
+  let candleDate = new Date(candle.start.valueOf());
+  if ((candleDate.getMinutes() + 1) % 5 === 0) {
+    Object.keys(this.activeStopTrigger).forEach(t => {
+      log.info(`Checking if to initiate stop trigger ${t}`);
+      this.activeStopTrigger[t].instance.forceUpdate(this.price);
+    });
+  }
+
   done();
 };
 
@@ -236,7 +244,8 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
           trail: trigger.trailValue,
           initialPrice: activeInitialPrice,
           exposure: this.exposure
-        }
+        },
+        proactive: false
       })
     };
   }
@@ -260,7 +269,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
       }
     });
 
-    log.info(`Recovering fixedStop trigger "${triggerId}"! Properties:`);
+    log.info(`Recovering / Creating fixedStop trigger "${triggerId}"! Properties:`);
     log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tStop value is: ${trigger.stopValue}`);
 
@@ -274,7 +283,8 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
           stopValue: trigger.stopValue,
           initialPrice: activeInitialPrice,
           exposure: this.exposure
-        }
+        },
+        proactive: false
       })
     };
   }

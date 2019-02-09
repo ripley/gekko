@@ -167,12 +167,13 @@ class Broker {
     return order;
   }
 
-  createTrigger({type, onTrigger, props}) {
+  createTrigger({type, onTrigger, props, proactive = true}) {
     return new Trigger({
       api: this.api,
       type,
       onTrigger,
-      props
+      props,
+      proactive
     });
   }
 }

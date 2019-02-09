@@ -34,16 +34,17 @@ CandleBatcher.prototype.write = function(candles) {
   this.emitted = 0;
 
   // Align generate candle with a specific border, like 0, 5, 10 ...
-  // if (!this.candleBorderAligned && !!candles) {
-  //   for (let i = 0; i < candles.length; i++) {
-  //     let candleDate = new Date(candles[i].start().valueOf());
-  //     if (candleDate.getMinutes() % 5 !== 0) {
-  //       candles.shift();
-  //     } else {
-  //       break;
-  //     }
-  //   }
-  // }
+  if (!this.candleBorderAligned && !!candles) {
+    for (let i = 0; i < candles.length; i++) {
+      let candleDate = new Date(candles[i].start.valueOf());
+      if (candleDate.getMinutes() % 5 !== 0) {
+        candles.shift();
+      } else {
+        this.candleBorderAligned = true;
+        break;
+      }
+    }
+  }
 
   _.each(candles, function(candle) {
     this.smallCandles.push(candle);

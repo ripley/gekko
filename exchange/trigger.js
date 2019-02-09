@@ -12,7 +12,7 @@ const triggers = require('./triggers');
 // @param type: type of trigger to wrap
 // @param props: properties to feed to trigger
 class Trigger {
-  constructor({api, type, props, onTrigger}) {
+  constructor({api, type, props, onTrigger, proactive = true}) {
     this.onTrigger = onTrigger;
     this.api = api;
 
@@ -34,7 +34,9 @@ class Trigger {
       ...props
     });
 
-    this.scheduleFetch();
+    if (proactive) {
+      this.scheduleFetch();
+    }
   }
 
   scheduleFetch() {
@@ -46,6 +48,10 @@ class Trigger {
       return;
     }
     this.api.getTicker(this.processTicker)
+  }
+
+  forceUpdate(price) {
+    this.trigger.updatePrice(price);
   }
 
   processTicker(err, ticker) {
