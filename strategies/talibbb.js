@@ -98,7 +98,7 @@ function recoverOrder(self) {
       },
       fixedStop: {
         stopPercentage: 4,
-        initialPrice: parseInt(self.initialPortfolio.base)
+        initialPrice: parseFloat(self.initialPortfolio.base)
       }
     };
 

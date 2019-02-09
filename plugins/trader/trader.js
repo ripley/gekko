@@ -222,7 +222,7 @@ Trader.prototype.recoverOrCreateTriggers = function(advice, initialPrice) {
       }
     });
 
-    log.info(`Recovering trailingStop trigger "${triggerId}"! Properties:`);
+    log.info(`Recovering / Creating trailingStop trigger "${triggerId}"! Properties:`);
     log.info(`\tInitial price: ${activeInitialPrice}`);
     log.info(`\tTrail of: ${trigger.trailValue}`);
 
