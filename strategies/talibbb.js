@@ -153,7 +153,7 @@ strategy.check = function (candle) {
     filterResult = bandWidthFilter(lower, upper,
       this.settings.widthFilter.halfWidth, price, this.settings.widthFilter.factor);
     if (!filterResult) {
-      console.log(`Filter widthFilter give a negative with settings\n: ${this.settings.widthFilter}`);
+      console.log(`Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
     }
   }
 
