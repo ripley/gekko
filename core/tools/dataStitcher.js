@@ -109,6 +109,7 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
     } 
 
     log.debug('\tFetching exchange data since', this.ago(idealExchangeStartTimeTS))
+
     this.checkExchangeTrades(idealExchangeStartTime, function(err, exchangeData) {
       log.debug('\tAvailable exchange data:');
       log.debug('\t\tfrom:', this.ago(exchangeData.from));
@@ -157,6 +158,7 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
 
         // seed all historic data up to the point the exchange can provide.
         var from = localData.from;
+        from = Math.ceil(from / 300) * 300;
         var to = moment.unix(exchangeData.from).utc()
           .startOf('minute')
           .subtract(1, 'minute')
