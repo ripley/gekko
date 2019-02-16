@@ -141,17 +141,33 @@ strategy.check = function (candle) {
   console.log('previous zone:  ', this.trend.zone);
   console.log('current zone:  ', zone);
 
-  function bandWidthFilter(lower, upper, halfWidth, price, factor) {
+  function bandWidthFilterMin(middle, price, factor) {
+    let minLower = middle * (1 - factor);
+    let minUpper = middle * (1 + factor);
+    return price > minUpper || price  < minLower;
+  }
+
+  function bandWidthFilterMax(lower, upper, halfWidth, middle, factor) {
     const width = !!halfWidth ? (upper - lower) / 2 : upper - lower;
-    const actualFactor = width / price;
+    const actualFactor = width / middle;
     return actualFactor < factor;
   }
 
   let filterResult = true;
 
   if (!!this.settings.widthFilter) {
-    filterResult = bandWidthFilter(lower, upper,
-      this.settings.widthFilter.halfWidth, price, this.settings.widthFilter.factor);
+    let maxMstdFilter = bandWidthFilterMax(lower, upper,
+      this.settings.widthFilter.halfWidth, middle, this.settings.widthFilter.maxMstdPct);
+    if (!maxMstdFilter) {
+      console.log(`Max MSTD Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
+    }
+
+    let minMstdFilter = bandWidthFilterMin(middle, price, this.settings.widthFilter.minMstdPct);
+    if (!minMstdFilter) {
+      console.log(`Min MSTD Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
+    }
+
+    filterResult = maxMstdFilter && minMstdFilter;
     if (!filterResult) {
       console.log(`Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
     }
