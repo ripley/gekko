@@ -25,6 +25,8 @@ strategy.init = function () {
     persisted: false
   };
 
+  this.nextOperation = 'none';
+
   this.triggerRecovered = false;
   this.initialPortfolio = undefined;
   this.portfolio = undefined;
@@ -38,6 +40,15 @@ strategy.init = function () {
 
 strategy.log = function(candle) {
   // console.log(candle);
+};
+
+const initialTriggers = {
+  trailingStop: {
+    trailPercentage: 5, // or: trailValue: 100
+  },
+  fixedStop: {
+    stopPercentage: 4,
+  }
 };
 
 strategy.onPortfolioChange = function(portfolio) {
@@ -113,6 +124,96 @@ function recoverOrder(self) {
   self.triggerRecovered = true;
 }
 
+function bandWidthFilterMin(middle, price, factor) {
+  let minLower = middle * (1 - factor);
+  let minUpper = middle * (1 + factor);
+  return price > minUpper || price  < minLower;
+}
+
+function bandWidthFilterMax(lower, upper, halfWidth, middle, factor) {
+  const width = !!halfWidth ? (upper - lower) / 2 : upper - lower;
+  const actualFactor = width / middle;
+  return actualFactor < factor;
+}
+
+function checkAndOperate(self, lower, upper, middle, price) {
+  if (self.nextOperation === 'none') {
+    console.log(`No action required, returning ...`);
+    return;
+  }
+
+  console.log(`Checking whether to perform action: ${self.nextOperation}`);
+
+  if (self.nextOperation === 'close') {
+    self.advice('close');
+    self.nextOperation = 'none';
+    return;
+  }
+
+  let maxMstdFilter = !self.settings.widthFilter ? true : bandWidthFilterMax(lower, upper,
+    self.settings.widthFilter.halfWidth, middle, self.settings.widthFilter.maxMstdPct);
+
+  let minMstdFilter =  !self.settings.widthFilter ? true : bandWidthFilterMin(middle, price,
+    self.settings.widthFilter.minMstdPct);
+
+  if (!maxMstdFilter) {
+    console.log(`Max MSTD Filter give a negative with settings\n: ${JSON.stringify(self.settings.widthFilter, null, 2)}`);
+  }
+
+  if (!minMstdFilter) {
+    console.log(`Min MSTD Filter give a negative with settings\n: ${JSON.stringify(self.settings.widthFilter, null, 2)}`);
+  }
+
+  if (self.nextOperation === 'long') {
+    if (maxMstdFilter) {
+      self.advice({
+        direction: 'long',
+        trigger: initialTriggers
+      });
+      self.nextOperation = 'none';
+    }
+    return;
+  }
+
+  if (self.nextOperation === 'close_then_long') {
+    if (maxMstdFilter) {
+      self.advice({
+        direction: 'close_then_long',
+        trigger: initialTriggers
+      });
+      self.nextOperation = 'none';
+    } else {
+      self.advice('close');
+      self.nextOperation = 'long';
+    }
+    return;
+  }
+
+  if (self.nextOperation === 'short') {
+    if (minMstdFilter) {
+      self.advice({
+        direction: 'short',
+        trigger: initialTriggers
+      });
+      self.nextOperation = 'none';
+    }
+    return;
+  }
+
+  if (self.nextOperation === 'close_then_short') {
+    if (minMstdFilter) {
+      self.advice({
+        direction: 'close_then_short',
+        trigger: initialTriggers
+      });
+      self.nextOperation = 'none';
+    } else {
+      self.advice('close');
+      self.nextOperation = 'short';
+    }
+  }
+}
+
 strategy.check = function (candle) {
   if (!this.triggerRecovered) {
     recoverOrder(this);
@@ -121,6 +222,7 @@ strategy.check = function (candle) {
   if (checkLastNOhlcvForCloseSignal(this, candle.close)) {
     console.log(`Triggering close by high volatility.`);
     this.advice('close');
+    this.nextOperation = 'none';
     return;
   }
 
@@ -141,47 +243,6 @@ strategy.check = function (candle) {
   console.log('previous zone:  ', this.trend.zone);
   console.log('current zone:  ', zone);
 
-  function bandWidthFilterMin(middle, price, factor) {
-    let minLower = middle * (1 - factor);
-    let minUpper = middle * (1 + factor);
-    return price > minUpper || price  < minLower;
-  }
-
-  function bandWidthFilterMax(lower, upper, halfWidth, middle, factor) {
-    const width = !!halfWidth ? (upper - lower) / 2 : upper - lower;
-    const actualFactor = width / middle;
-    return actualFactor < factor;
-  }
-
-  let filterResult = true;
-
-  if (!!this.settings.widthFilter) {
-    let maxMstdFilter = bandWidthFilterMax(lower, upper,
-      this.settings.widthFilter.halfWidth, middle, this.settings.widthFilter.maxMstdPct);
-    if (!maxMstdFilter) {
-      console.log(`Max MSTD Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
-    }
-
-    let minMstdFilter = bandWidthFilterMin(middle, price, this.settings.widthFilter.minMstdPct);
-    if (!minMstdFilter) {
-      console.log(`Min MSTD Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
-    }
-
-    filterResult = maxMstdFilter && minMstdFilter;
-    if (!filterResult) {
-      console.log(`Filter widthFilter give a negative with settings\n: ${JSON.stringify(this.settings.widthFilter, null, 2)}`);
-    }
-  }
-
-  // Chain other filters here.
-  function filteredAdvice(self,order) {
-    if(filterResult) {
-      self.advice(order);
-      return;
-    }
-    console.log(`Order ${order} rejected by filter !`);
-  }
-
   if (this.trend.zone === zone) {
     // No zone change
     log.debug('persisted');
@@ -194,65 +255,36 @@ strategy.check = function (candle) {
     this.advice();
   }
   else {
-    const initialTriggers = {
-      trailingStop: {
-        trailPercentage: 5, // or: trailValue: 100
-      },
-      fixedStop: {
-        stopPercentage: 4,
-      }
-    };
-
     // There is a zone change
     console.log('Leaving zone: ', this.trend.zone);
     if (zone === 'top') {
       if (this.trend.zone === 'high') {
         console.log('>>>>> SIGNALING ADVICE LONG <<<<<<<<<<<<');
-        filteredAdvice(this, {
-          direction: 'long', // or short
-          trigger: initialTriggers
-        });
+        this.nextOperation = 'long';
       } else if(this.trend.zone === 'none')  {
         console.log('Previous zone not retrieved, will not advice.');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_LONG <<<<<<<<<<<<');
-        if (!filterResult) {
-          this.advice('close');
-        } else  {
-          this.advice({
-            direction: 'close_then_long', // or short
-            trigger: initialTriggers
-          });
-        }
+        this.nextOperation = 'close_then_long';
       }
     }
 
     if (zone === 'bottom') {
       if (this.trend.zone === 'low') {
         console.log('>>>>> SIGNALING ADVICE SHORT <<<<<<<<<<<<');
-        filteredAdvice(this, {
-          direction: 'short',
-          trigger: initialTriggers
-        });
+        this.nextOperation = 'short';
       } else if(this.trend.zone === 'none')  {
         console.log('Previous zone not retrieved, will not advice.');
       } else {
         console.log('>>>>> SIGNALING ADVICE CLOSE_THEN_SHORT <<<<<<<<<<<<');
-        if (!filterResult) {
-          this.advice('close');
-        } else  {
-          this.advice({
-            direction: 'close_then_short',
-            trigger: initialTriggers
-          });
-        }
+        this.nextOperation = 'close_then_short';
       }
     }
 
     if ((this.trend.zone === 'low' && zone === 'high') ||
       (this.trend.zone === 'high' && zone === 'low')) {
       console.log('>>>>> SIGNALING ADVICE CLOSE <<<<<<<<<<<<');
-      this.advice('close');
+      this.nextOperation = 'close';
     }
 
     this.trend = {
@@ -261,6 +293,8 @@ strategy.check = function (candle) {
       persisted: false
     }
   }
+
+  checkAndOperate(this, lower, upper, middle, price);
 };
 
 module.exports = strategy;
