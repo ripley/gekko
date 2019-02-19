@@ -164,8 +164,10 @@ function checkAndOperate(self, lower, upper, middle, price) {
     console.log(`Min MSTD Filter give a negative with settings\n: ${JSON.stringify(self.settings.widthFilter, null, 2)}`);
   }
 
+  let willTrade = maxMstdFilter && minMstdFilter;
+
   if (self.nextOperation === 'long') {
-    if (maxMstdFilter) {
+    if (willTrade) {
       self.advice({
         direction: 'long',
         trigger: initialTriggers
@@ -176,7 +178,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'close_then_long') {
-    if (maxMstdFilter) {
+    if (willTrade) {
       self.advice({
         direction: 'close_then_long',
         trigger: initialTriggers
@@ -190,7 +192,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'short') {
-    if (minMstdFilter) {
+    if (willTrade) {
       self.advice({
         direction: 'short',
         trigger: initialTriggers
@@ -201,7 +203,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'close_then_short') {
-    if (minMstdFilter) {
+    if (willTrade) {
       self.advice({
         direction: 'close_then_short',
         trigger: initialTriggers
