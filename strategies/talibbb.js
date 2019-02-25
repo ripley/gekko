@@ -43,9 +43,9 @@ strategy.log = function(candle) {
 };
 
 const initialTriggers = {
-  trailingStop: {
-    trailPercentage: 5, // or: trailValue: 100
-  },
+  //trailingStop: {
+  //  trailPercentage: 5, // or: trailValue: 100
+  //},
   fixedStop: {
     stopPercentage: 4,
   }
@@ -103,10 +103,10 @@ function recoverOrder(self) {
     }, []);
 
     const triggers = {
-      trailingStop: {
-        trailPercentage: 5, // or: trailValue: 100
-        initialPrice: self.initialPortfolio.asset > 0 ? minMax[1] : minMax[0]
-      },
+      //trailingStop: {
+      //  trailPercentage: 5, // or: trailValue: 100
+      //  initialPrice: self.initialPortfolio.asset > 0 ? minMax[1] : minMax[0]
+      //},
       fixedStop: {
         stopPercentage: 4,
         initialPrice: parseFloat(self.initialPortfolio.base)
@@ -136,13 +136,13 @@ function bandWidthFilterMax(lower, upper, halfWidth, middle, factor) {
   return actualFactor < factor;
 }
 
-function checkAndOperate(self, lower, upper, middle, price) {
+function checkAndOperate(self, lower, upper, middle, price, zone) {
   if (self.nextOperation === 'none') {
     console.log(`No action required, returning ...`);
     return;
   }
 
-  console.log(`Checking whether to perform action: ${self.nextOperation}`);
+  console.log(`Checking whether to perform action: ${self.nextOperation} in zone ${zone}`);
 
   if (self.nextOperation === 'close') {
     self.advice('close');
@@ -167,7 +167,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   let willTrade = maxMstdFilter && minMstdFilter;
 
   if (self.nextOperation === 'long') {
-    if (willTrade) {
+    if (willTrade && zone === 'top') {
       self.advice({
         direction: 'long',
         trigger: initialTriggers
@@ -178,7 +178,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'close_then_long') {
-    if (willTrade) {
+    if (willTrade && zone === 'top') {
       self.advice({
         direction: 'close_then_long',
         trigger: initialTriggers
@@ -192,7 +192,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'short') {
-    if (willTrade) {
+    if (willTrade && zone === 'bottom') {
       self.advice({
         direction: 'short',
         trigger: initialTriggers
@@ -203,7 +203,7 @@ function checkAndOperate(self, lower, upper, middle, price) {
   }
 
   if (self.nextOperation === 'close_then_short') {
-    if (willTrade) {
+    if (willTrade && zone === 'bottom') {
       self.advice({
         direction: 'close_then_short',
         trigger: initialTriggers
@@ -296,7 +296,7 @@ strategy.check = function (candle) {
     }
   }
 
-  checkAndOperate(this, lower, upper, middle, price);
+  checkAndOperate(this, lower, upper, middle, price, zone);
 };
 
 module.exports = strategy;
