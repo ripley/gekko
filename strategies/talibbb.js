@@ -108,7 +108,7 @@ function recoverOrder(self) {
       //  initialPrice: self.initialPortfolio.asset > 0 ? minMax[1] : minMax[0]
       //},
       fixedStop: {
-        stopPercentage: this.settings.fixedStopPercent,
+        stopPercentage: self.settings.fixedStopPercent,
         initialPrice: parseFloat(self.initialPortfolio.base)
       }
     };
