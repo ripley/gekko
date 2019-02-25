@@ -34,21 +34,21 @@ strategy.init = function () {
   this.backOhlcvNumber = 3;
   this.ohlcvChangePercentForClose = 0.05;
 
+  this.initialTriggers = {
+    //trailingStop: {
+    //  trailPercentage: 5, // or: trailValue: 100
+    //},
+    fixedStop: {
+      stopPercentage: this.settings.fixedStopPercent,
+    }
+  };
+
   this.addTalibIndicator('bb', 'bbands', this.settings);
   console.log(`Strategy talibbb initiated with settings ${JSON.stringify(this.settings, null, 2)}.`);
 };
 
 strategy.log = function(candle) {
   // console.log(candle);
-};
-
-const initialTriggers = {
-  //trailingStop: {
-  //  trailPercentage: 5, // or: trailValue: 100
-  //},
-  fixedStop: {
-    stopPercentage: this.settings.fixedStopPercent,
-  }
 };
 
 strategy.onPortfolioChange = function(portfolio) {
@@ -171,7 +171,7 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     if (willTrade && zone === 'top') {
       self.advice({
         direction: 'long',
-        trigger: initialTriggers
+        trigger: self.initialTriggers
       });
       self.nextOperation = 'none';
     }
@@ -182,7 +182,7 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     if (willTrade && zone === 'top') {
       self.advice({
         direction: 'close_then_long',
-        trigger: initialTriggers
+        trigger: self.initialTriggers
       });
       self.nextOperation = 'none';
     } else {
@@ -196,7 +196,7 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     if (willTrade && zone === 'bottom') {
       self.advice({
         direction: 'short',
-        trigger: initialTriggers
+        trigger: self.initialTriggers
       });
       self.nextOperation = 'none';
     }
@@ -207,7 +207,7 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     if (willTrade && zone === 'bottom') {
       self.advice({
         direction: 'close_then_short',
-        trigger: initialTriggers
+        trigger: self.initialTriggers
       });
       self.nextOperation = 'none';
     } else {
