@@ -23,10 +23,11 @@ const Actor = function() {
 };
 
 Actor.prototype.sendMessage = function(msg) {
+  let extendedMsg = `Message from account ${dingtalkbotconf.accountName}\n${msg}`;
   let textContent = {
     msgtype: "text",
     text: {
-      "content": msg
+      "content": extendedMsg
     },
   };
   this.bot
