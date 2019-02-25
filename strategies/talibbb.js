@@ -47,7 +47,7 @@ const initialTriggers = {
   //  trailPercentage: 5, // or: trailValue: 100
   //},
   fixedStop: {
-    stopPercentage: 4,
+    stopPercentage: this.settings.fixedStopPercent,
   }
 };
 
@@ -108,7 +108,7 @@ function recoverOrder(self) {
       //  initialPrice: self.initialPortfolio.asset > 0 ? minMax[1] : minMax[0]
       //},
       fixedStop: {
-        stopPercentage: 4,
+        stopPercentage: this.settings.fixedStopPercent,
         initialPrice: parseFloat(self.initialPortfolio.base)
       }
     };
@@ -150,11 +150,12 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     return;
   }
 
-  let maxMstdFilter = !self.settings.widthFilter ? true : bandWidthFilterMax(lower, upper,
-    self.settings.widthFilter.halfWidth, middle, self.settings.widthFilter.maxMstdPct);
+  let maxMstdFilter = !(self.settings.widthFilter && self.settings.widthFilter.maxMstdPct)
+    ? true : bandWidthFilterMax(lower, upper, self.settings.widthFilter.halfWidth,
+      middle, self.settings.widthFilter.maxMstdPct);
 
-  let minMstdFilter =  !self.settings.widthFilter ? true : bandWidthFilterMin(middle, price,
-    self.settings.widthFilter.minMstdPct);
+  let minMstdFilter = !(self.settings.widthFilter && self.settings.widthFilter.minMstdPct)
+    ? true : bandWidthFilterMin(middle, price, self.settings.widthFilter.minMstdPct);
 
   if (!maxMstdFilter) {
     console.log(`Max MSTD Filter give a negative with settings\n: ${JSON.stringify(self.settings.widthFilter, null, 2)}`);
@@ -221,7 +222,7 @@ strategy.check = function (candle) {
     recoverOrder(this);
   }
 
-  if (checkLastNOhlcvForCloseSignal(this, candle.close)) {
+  if (!!this.settings.checkLastNOhlcv && checkLastNOhlcvForCloseSignal(this, candle.close)) {
     console.log(`Triggering close by high volatility.`);
     this.advice('close');
     this.nextOperation = 'none';
