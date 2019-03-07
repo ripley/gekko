@@ -65,7 +65,7 @@ function convertJsonToMd(dataObjs) {
     md = md + `## ${obj.account}:\n`;
     if (!!obj.data && obj.data.length > 0) {
       obj.data.forEach(entry => {
-        md = md + `### Symbol: ${entry.symbol}\n\n > 类型: ${entry.type} \n\n > 出价: ${entry.price} \n\n > 挂单量: ${entry.original_amount} \n\n > 已成交: ${entry.executed_amount} \n\n > 待成交: ${entry.remaining_amount} \n\n > 时间: ${(new Date(entry.timestamp * 1000)).toLocaleString()} \n\n > 未实现盈亏: ${entry.pl} \n\n\n\n`;
+        md = md + `### Symbol: ${entry.symbol}\n\n > 类型: ${entry.type} \n\n > 出价: ${entry.price} \n\n > 挂单量: ${entry.original_amount} \n\n > 已成交: ${entry.executed_amount} \n\n > 待成交: ${entry.remaining_amount} \n\n > 时间: ${(new Date(entry.timestamp * 1000)).toLocaleString()} \n\n\n\n`;
       })
     } else {
       md = md + '> 当前无活动挂单\n\n';
@@ -118,5 +118,5 @@ function run() {
   });
 }
 
-// run();
-setInterval(run, 1800000);
+run();
+setInterval(run, 1200000);
