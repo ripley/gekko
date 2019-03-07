@@ -48,7 +48,7 @@ function sendMdMessage(extendedMsg) {
 }
 
 function convertJsonToMd(dataObjs) {
-  let md = '#Portfolio概要: \n';
+  let md = '# Portfolio概要: \n';
   dataObjs.portfolio.forEach(obj => {
     md = md + `## ${obj.account}:\n`;
     if (!!obj.data && obj.data.length > 0) {
@@ -60,7 +60,7 @@ function convertJsonToMd(dataObjs) {
     }
   });
 
-  md = '#Orders概要: \n';
+  md = md + '# Orders概要: \n';
   dataObjs.orders.forEach(obj => {
     md = md + `## ${obj.account}:\n`;
     if (!!obj.data && obj.data.length > 0) {
@@ -77,7 +77,7 @@ function convertJsonToMd(dataObjs) {
 
 function createCbForPortfolio(account) {
   return (err, data) => {
-    finalData.portfolio.push({account: account, data: data});
+    finalData.portfolio.push({account: account, data: data, err:err});
     if (finalData.portfolio.length === credentials.length
       && finalData.orders.length === credentials.length) {
       // All data received, go ahead to send to dingtalk.
@@ -90,7 +90,7 @@ function createCbForPortfolio(account) {
 
 function createCbForOrders(account) {
   return (err, data) => {
-    finalData.orders.push({account: account, data: data});
+    finalData.orders.push({account: account, data: data, err:err});
     if (finalData.portfolio.length === credentials.length
       && finalData.orders.length === credentials.length) {
       // All data received, go ahead to send to dingtalk.
@@ -114,7 +114,7 @@ function run() {
       transform: true
     });
     bfx.active_positions(createCbForPortfolio(credential.name));
-    bfx.active_orders(createCbForOrders(credential.name));
+    setTimeout(() => {bfx.active_orders(createCbForOrders(credential.name))}, 5000);
   });
 }
 
