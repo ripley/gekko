@@ -2,15 +2,8 @@ const BFX = require("bitfinex-api-node");
 const DINGBOT = require("dingtalk-robot-sender");
 const fs = require('fs');
 
-let reportConf = {};
-
-fs.readFile('reportConf.json', 'utf8', function(err, contents) {
-  if (!!err) {
-    console.log(`Failed to parse reportConf file with error: ${err}, exiting ...`);
-    process.exit(1);
-  }
-  reportConf = JSON.parse(contents);
-});
+let contents = fs.readFileSync('reportConf.json', 'utf8');
+let reportConf = JSON.parse(contents);
 
 if (!reportConf.dingbotToken || !reportConf.credentials) {
   console.log(`Didn't get mandatory argument parsed, exiting ...`);
