@@ -192,6 +192,17 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
     return;
   }
 
+  // Disable short
+  if (self.nextOperation === 'short') {
+    self.nextOperation = 'none';
+    return;
+  }
+
+  if (self.nextOperation === 'close_then_short') {
+    self.advice('close');
+    self.nextOperation = 'short';
+  }
+  /*
   if (self.nextOperation === 'short') {
     if (willTrade && zone === 'bottom') {
       self.advice({
@@ -215,6 +226,7 @@ function checkAndOperate(self, lower, upper, middle, price, zone) {
       self.nextOperation = 'short';
     }
   }
+  */
 }
 
 strategy.check = function (candle) {
